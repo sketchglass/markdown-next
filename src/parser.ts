@@ -53,7 +53,11 @@ const em = emStart
   .map(surroundWith("em"))
   .skip(emEnd)
 
-const inline = em.or(strong).or(plainStr)
+const inline = P.alt(
+    em,
+    strong,
+    plainStr
+  )
 
 const paragraph = inline.atLeast(1).map(x => x.join("")).map(surroundWith("p"))
 
@@ -65,6 +69,10 @@ const paragraphOrLinebreak = paragraph
   .atLeast(1)
   .map(x => x.join(""))
 
+const ul = P.string("- ").then(plainStr).skip(linebreak.many()).atLeast(1)
+  .map(x => surroundWith("ul")(x.map(surroundWith("li")).join("")))
+const lists = ul
+
 const acceptables = P.alt(
     h6,
     h5,
@@ -72,6 +80,7 @@ const acceptables = P.alt(
     h3,
     h2,
     h1,
+    lists,
     paragraphOrLinebreak,
     whitespace.result("<br />"),
   ).many().map(x => x.join(""))
