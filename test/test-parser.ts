@@ -53,15 +53,20 @@ para2`
     const expect = "<p>para1</p><p>para2</p>"
     assert.equal(parse(input), expect)
   })
-  it('should parse bold text inside a paragraph', () => {
-    const input = `this should be **bold**`
-    const expect = "<p>this should be <strong>bold</strong></p>"
+  it('should parse strong text inside a paragraph', () => {
+    const input = `this should be **strong**`
+    const expect = "<p>this should be <strong>strong</strong></p>"
     assert.equal(parse(input), expect)
   })
 
-  it('should parse bold text a single phrase', () => {
-    const input = `**bold**`
-    const expect = "<p><strong>bold</strong></p>"
+  it('should parse strong text a single phrase', () => {
+    const input = `**strong**`
+    const expect = "<p><strong>strong</strong></p>"
+    assert.equal(parse(input), expect)
+  })
+  it('should parse em text a single phrase', () => {
+    const input = `*em*`
+    const expect = "<p><em>em</em></p>"
     assert.equal(parse(input), expect)
   })
   it('should parse complex text', () => {

@@ -46,7 +46,14 @@ const strong = strongStart
   .map(surroundWith("strong"))
   .skip(strongEnd)
 
-const inline = strong.or(plainStr)
+const emStart = P.string("*")
+const emEnd = emStart
+const em = emStart
+  .then(plainStr)
+  .map(surroundWith("em"))
+  .skip(emEnd)
+
+const inline = em.or(strong).or(plainStr)
 
 const paragraph = inline.atLeast(1).map(x => x.join("")).map(surroundWith("p"))
 
