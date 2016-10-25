@@ -53,7 +53,18 @@ const em = emStart
   .map(surroundWith("em"))
   .skip(emEnd)
 
+const anchor = P.seqMap(
+  P.string("["),
+  P.regexp(/[^\]\r\n]+/),
+  P.string("]("),
+  P.regexp(/[^\)\r\n]+/),
+  P.string(")"),
+  (_1, label, _2, target, _3) => {
+    return `<a href="${target}">${label}</a>`
+  })
+
 const inline = P.alt(
+    anchor,
     em,
     strong,
     plainStr

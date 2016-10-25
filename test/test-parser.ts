@@ -97,4 +97,9 @@ Morbi viverra lacus tortor, eu consectetur ante tempor quis. Fusce eu eros et ni
     const expect = `<ol><li>li1</li><li>li2</li></ol>`
     assert.equal(parse(input), expect)
   })
+  it("should parse anchor", () => {
+    const input = `[label](url)`
+    const expect = `<p><a href="url">label</a></p>`
+    assert.equal(parse(input), expect)
+  })
 })
