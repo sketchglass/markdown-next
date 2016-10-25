@@ -8,7 +8,7 @@ Below is the list of what this is supported:
 - [x] headers(h1, h2, h3, h4, h5, h6)
 - [x] ul
 - [x] ol
-- [ ] a
+- [x] a
 - [ ] code
 
 ## Install
