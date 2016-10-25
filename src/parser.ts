@@ -71,7 +71,10 @@ const paragraphOrLinebreak = paragraph
 
 const ul = P.string("- ").then(plainStr).skip(linebreak.many()).atLeast(1)
   .map(x => surroundWith("ul")(x.map(surroundWith("li")).join("")))
-const lists = ul
+const ol = P.regexp(/[0-9]+\. /).then(plainStr).skip(linebreak.many()).atLeast(1)
+  .map(x => surroundWith("ol")(x.map(surroundWith("li")).join("")))
+
+const lists = ul.or(ol)
 
 const acceptables = P.alt(
     h6,

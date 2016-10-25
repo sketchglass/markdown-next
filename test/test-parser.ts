@@ -91,4 +91,10 @@ Morbi viverra lacus tortor, eu consectetur ante tempor quis. Fusce eu eros et ni
     const expect = `<ul><li>li1</li><li>li2</li></ul>`
     assert.equal(parse(input), expect)
   })
+  it("should parse ol", () => {
+    const input = `1. li1
+2. li2`
+    const expect = `<ol><li>li1</li><li>li2</li></ol>`
+    assert.equal(parse(input), expect)
+  })
 })
