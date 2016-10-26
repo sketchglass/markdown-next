@@ -129,4 +129,27 @@ code block
     const expect = `<blockquote><p>This is the test of blockquote.<br /><blockquote>This is child.</blockquote><br />This should be treated as the same paragraph in the same quotation.</p></blockquote>`
     assert.equal(parse(input), expect)
   })
+  it("should parse multiple blockquotes", () => {
+    const input = `> para1
+
+> para2`
+    const expect = `<blockquote><p>para1</p></blockquote><blockquote><p>para2</p></blockquote>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse mixed text", () => {
+    const input = `# h1
+
+1. li
+2. li
+
+- li
+- li
+
+> para1
+> > para1
+
+> para2`
+    const expect = `<h1>h1</h1><ol><li>li</li><li>li</li></ol><ul><li>li</li><li>li</li></ul><blockquote><p>para1<br /><blockquote>para1</blockquote></p></blockquote><blockquote><p>para2</p></blockquote>`
+    assert.equal(parse(input), expect)
+  })
 })

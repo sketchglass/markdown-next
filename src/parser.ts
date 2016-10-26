@@ -143,8 +143,12 @@ const blockquoteLine = P.lazy(() => {
     }
   )
 })
-const blockquote = blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote"))
-
+const blockquote = P.lazy(() => {
+  // must be initialized each time this function is called.
+  blockquoteLevel = null
+  createBlockquote = false
+  return blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many())
+})
 const acceptables = P.alt(
     h6,
     h5,
