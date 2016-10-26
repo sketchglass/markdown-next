@@ -9,7 +9,7 @@ Below is the list of what this is supported:
 - [x] ul
 - [x] ol
 - [x] a
-- [ ] code
+- [x] code
 
 ## Install
 Clone this repo and execute `npm run install`.

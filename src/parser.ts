@@ -63,11 +63,13 @@ const anchor = P.seqMap(
     return `<a href="${target}">${label}</a>`
   })
 
+const paragraphStr = P.regexp(/[^\r\n\[\]\*]+/)
+
 const inline = P.alt(
     anchor,
     em,
     strong,
-    plainStr
+    paragraphStr
   )
 
 const paragraph = inline.atLeast(1).map(x => x.join("")).map(surroundWith("p"))
@@ -87,6 +89,11 @@ const ol = P.regexp(/[0-9]+\. /).then(plainStr).skip(linebreak.many()).atLeast(1
 
 const lists = ul.or(ol)
 
+const codeBegin = P.string("```")
+const codeEnd = P.string("```")
+const codeStr = P.regexp(/[^`]*/)
+const code = codeBegin.then(codeStr).skip(codeEnd).map(surroundWith("code"))
+
 const acceptables = P.alt(
     h6,
     h5,
@@ -95,6 +102,7 @@ const acceptables = P.alt(
     h2,
     h1,
     lists,
+    code,
     paragraphOrLinebreak,
     whitespace.result("<br />"),
   ).many().map(x => x.join(""))
