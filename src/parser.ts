@@ -110,6 +110,41 @@ const codeBlock = P.seqMap(
       return `<pre><code>${code.join("")}</code></pre>`
     })
 
+const blockquoteStr = P.regexp(/[^\r\n]+/)
+const blockquoteBegin = P.string("> ")
+let blockquoteLevel: number | null = null
+let createBlockquote = false
+
+const blockquoteLine = P.lazy(() => {
+  return P.seqMap(
+    P.seqMap(
+      blockquoteBegin.atLeast(1),
+      P.index,
+      (_1, index) => {
+        const _index = index as any as {offest: number, line: number, column: number}
+        if (blockquoteLevel === null) {
+          blockquoteLevel = _index.column
+          return
+        }
+        if (blockquoteLevel < _index.column) {
+          createBlockquote = true
+        } else {
+          createBlockquote = false
+        }
+        blockquoteLevel = _index.column
+      }
+    ),
+    blockquoteStr,
+    linebreak.atMost(1),
+    (_1, s, _2) => {
+      if (createBlockquote)
+        return surroundWith("blockquote")(s)
+      return s
+    }
+  )
+})
+const blockquote = blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote"))
+
 const acceptables = P.alt(
     h6,
     h5,
@@ -119,6 +154,7 @@ const acceptables = P.alt(
     h1,
     lists,
     codeBlock,
+    blockquote,
     paragraphOrLinebreak,
     linebreak.result("<br />"),
   ).many().map(x => x.join(""))
