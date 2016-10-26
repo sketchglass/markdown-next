@@ -10,9 +10,26 @@ Below is the list of what this is supported:
 - [x] ol
 - [x] a
 - [x] code
+- [x] blockquote(nesting is allowed)
+- [ ] table
+- [ ] img
+
+Note: This project is currently beta. Any API will be changed without notice.
 
 ## Install
 Clone this repo and execute `npm run install`.
+
+## Usage
+
+```
+import {parse} from "generic-markdown-parser"
+```
+
+### parse(s: string): string
+Returns parsed html string.
+```
+parse(string)
+```
 
 ## Test and Development
 Run `npm test` command for testing. Under `src/test` contains unit testings.
