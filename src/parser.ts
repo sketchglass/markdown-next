@@ -95,7 +95,7 @@ const code = codeStart
   .map(surroundWith("code"))
   .skip(codeEnd)
 
-const paragraphStr = P.regexp(/[^\r\n\[\]\*\#\-`]+/)
+const paragraphStr = P.regexp(/(?![0-9]. )^[^\r\n\[\]\*\#\-`][^\r\n\[\]\*`]*/)
 const inline = P.alt(
     anchor,
     img,

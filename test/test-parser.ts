@@ -222,14 +222,33 @@ para`
     const expect = `<table><tr><th>a</th><th>b</th><th>c</th></tr><tr><td>d</td><td>e</td><td>f</td></tr></table>`
     assert.equal(parse(input), expect)
   })
-  it("should parse h1 after paragraph", () => {
-    const input = `para
+  describe("courner cases", () => {
+    it("should parse h1 after paragraph", () => {
+      const input = `para
 
 # h1
 
 para
 para`
-    const expect = `<p>para</p><h1>h1</h1><p>para<br />para</p>`
-    assert.equal(parse(input), expect)
+      const expect = `<p>para</p><h1>h1</h1><p>para<br />para</p>`
+      assert.equal(parse(input), expect)
+    })
+    it("should parse as a paragraph contains special characters", () => {
+      const input = `para#para`
+      const expect = `<p>para#para</p>`
+      assert.equal(parse(input), expect)
+    })
+    it("should parse list first", () => {
+      const input = `para
+
+para
+
+para
+
+1. li
+2. li`
+      const expect = `<p>para</p><p>para</p><p>para</p><ol><li>li</li><li>li</li></ol>`
+      assert.equal(parse(input), expect)
+    })
   })
 })
