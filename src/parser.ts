@@ -16,7 +16,7 @@ interface ListTree {
 const whitespace = P.regexp(/\s+/m)
 const asterisk = P.string("*")
 const sharp = P.string("#")
-const plainStr = P.regexp(/[^`\*\r\n]+/)
+const plainStr = P.regexp(/[^`_\*\r\n]+/)
 const linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"))
 const equal = P.string("=")
 const minus = P.string("-")
@@ -54,14 +54,14 @@ const h6 = token(P.seq(
     whitespace,
   ).then(plainStr)).map(surroundWith("h6"))
 
-const strongStart = P.string("**")
+const strongStart = P.string("**").or(P.string("__"))
 const strongEnd = strongStart
 const strong = strongStart
   .then(plainStr)
   .map(surroundWith("strong"))
   .skip(strongEnd)
 
-const emStart = P.string("*")
+const emStart = P.string("*").or(P.string("_"))
 const emEnd = emStart
 const em = emStart
   .then(plainStr)

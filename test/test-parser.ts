@@ -63,11 +63,17 @@ para2`
     const input = `**strong**`
     const expect = "<p><strong>strong</strong></p>"
     assert.equal(parse(input), expect)
+    const input2 = `__em__`
+    const expect2 = "<p><strong>em</strong></p>"
+    assert.equal(parse(input2), expect2)
   })
   it('should parse em text a single phrase', () => {
     const input = `*em*`
     const expect = "<p><em>em</em></p>"
     assert.equal(parse(input), expect)
+    const input2 = `_em_`
+    const expect2 = "<p><em>em</em></p>"
+    assert.equal(parse(input2), expect2)
   })
   it('should parse complex text', () => {
     const input = `
