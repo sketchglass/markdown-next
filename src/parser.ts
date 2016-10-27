@@ -1,5 +1,18 @@
 import * as P from "parsimmon"
 
+interface IndexType {
+  offset: number
+  line: number
+  column: number
+}
+
+interface ListTree {
+  type: "ul" | "ol" | "shadow"
+  children: Array<ListTree>
+  value: string | null
+  parent: ListTree | null
+}
+
 const whitespace = P.regexp(/\s+/m)
 const asterisk = P.string("*")
 const sharp = P.string("#")
@@ -89,12 +102,98 @@ const paragraphOrLinebreak = paragraph
   .atLeast(1)
   .map(x => x.join(""))
 
-const ul = P.string("- ").then(plainStr).skip(linebreak.many()).atLeast(1)
-  .map(x => surroundWith("ul")(x.map(surroundWith("li")).join("")))
-const ol = P.regexp(/[0-9]+\. /).then(plainStr).skip(linebreak.many()).atLeast(1)
-  .map(x => surroundWith("ol")(x.map(surroundWith("li")).join("")))
+const listIndent = P.string("  ")
+const liSingleLine = plainStr
 
-const lists = ul.or(ol)
+const ulStart = P.string("- ").or(P.string("* "))
+const olStart =  P.regexp(/[0-9]+\. /)
+
+
+let liLevel: number | null = null
+let liLevelBefore: number | null = null
+
+let rootTree: ListTree
+let currentTree: ListTree
+let nodeType: "ul" | "ol"
+
+const listLineContent = P.seqMap(
+  P.seqMap(
+    listIndent.many(),
+    P.index,
+    (_1, index) => {
+      const _index = index as any as IndexType
+      if(liLevelBefore === null)
+        liLevelBefore = liLevel = _index.column
+      liLevelBefore = liLevel
+      liLevel = _index.column
+    }
+  ),
+  ulStart.or(olStart),
+  (_1, start) => {
+    // detect which types of content
+    nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
+  }
+).then(liSingleLine).skip(linebreak.atMost(1)).map(x => {
+  if(liLevelBefore == liLevel) {
+    currentTree.children.push({
+      value: x,
+      children: [],
+      type: nodeType,
+      parent: currentTree
+    })
+  } else if(liLevelBefore < liLevel) {
+    const currentTreeIndex = currentTree.children.length - 1
+    currentTree = currentTree.children[currentTreeIndex]
+    currentTree.children.push({
+      children: [],
+      type: nodeType,
+      parent: currentTree,
+      value: x
+    })
+  } else if(liLevelBefore > liLevel) {
+    if(currentTree.parent !== null) {
+      currentTree = currentTree.parent
+    }
+    currentTree.children.push({
+      type: nodeType,
+      children: [],
+      parent: currentTree,
+      value: x
+    })
+  }
+  const _nodeType = nodeType
+  return _nodeType
+})
+const lists = listLineContent.atLeast(1).skip(linebreak.atMost(1)).map(nodeTypes => {
+  rootTree.type = nodeTypes[0]
+  const result = treeToHtml(rootTree)
+  rootTree = currentTree = {
+    value: null,
+    children: [],
+    type: "shadow",
+    parent: null
+  }
+  return result
+})
+
+
+const treeToHtml = (treeOrNode: ListTree) => {
+  if(treeOrNode.type === "shadow") {
+    return treeOrNode.children.map(treeToHtml).join("")
+  } else if(treeOrNode.children.length === 0 && treeOrNode.value !== null) {
+    return "<li>" + treeOrNode.value + "</li>"
+  } else if(treeOrNode.children.length !== 0 && treeOrNode.value !== null) {
+    const {children} = treeOrNode
+    const before = `<${treeOrNode.children[0].type}>`
+    const after = `</${treeOrNode.children[0].type}>`
+    return "<li>" + treeOrNode.value + before + children.map(treeToHtml).join("") + after + "</li>"
+  } else {
+    const before = `<${treeOrNode.type}>`
+    const after = `</${treeOrNode.type}>`
+    const {children} = treeOrNode
+    return before + children.map(treeToHtml).join("") + after
+  }
+}
 
 const codeBlockBegin = linebreak.atMost(1).then(P.string("```"))
 const codeBlockEnd = P.string("```").skip(linebreak.atMost(1))
@@ -121,7 +220,7 @@ const blockquoteLine = P.lazy(() => {
       blockquoteBegin.atLeast(1),
       P.index,
       (_1, index) => {
-        const _index = index as any as {offest: number, line: number, column: number}
+        const _index = index as any as IndexType
         if (blockquoteLevel === null) {
           blockquoteLevel = _index.column
           return
@@ -144,7 +243,6 @@ const blockquoteLine = P.lazy(() => {
   )
 })
 const blockquote = P.lazy(() => {
-  // must be initialized each time this function is called.
   blockquoteLevel = null
   createBlockquote = false
   return blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many())
@@ -164,6 +262,13 @@ const acceptables = P.alt(
   ).many().map(x => x.join(""))
 
 export const parse = (s: string) => {
+  liLevelBefore = liLevel = null
+  rootTree = currentTree = {
+    value: null,
+    children: [],
+    type: "shadow",
+    parent: null
+  }
   const parsed = acceptables.parse(s)
   if(parsed.hasOwnProperty("value"))
     return parsed.value

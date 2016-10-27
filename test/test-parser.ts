@@ -91,14 +91,16 @@ code block
   })
   it("should parse ul", () => {
     const input = `- li1
-- li2`
-    const expect = `<ul><li>li1</li><li>li2</li></ul>`
+- li2
+- li3`
+    const expect = `<ul><li>li1</li><li>li2</li><li>li3</li></ul>`
     assert.equal(parse(input), expect)
   })
   it("should parse ol", () => {
     const input = `1. li1
-2. li2`
-    const expect = `<ol><li>li1</li><li>li2</li></ol>`
+2. li2
+3. li3`
+    const expect = `<ol><li>li1</li><li>li2</li><li>li3</li></ol>`
     assert.equal(parse(input), expect)
   })
   it("should parse anchor", () => {
@@ -150,6 +152,46 @@ code block
 
 > para2`
     const expect = `<h1>h1</h1><ol><li>li</li><li>li</li></ol><ul><li>li</li><li>li</li></ul><blockquote><p>para1<br /><blockquote>para1</blockquote></p></blockquote><blockquote><p>para2</p></blockquote>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse nested lists", () => {
+    const input = `- test1
+- test2
+  - a`
+    const expect = `<ul><li>test1</li><li>test2<ul><li>a</li></ul></li></ul>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse nested lists", () => {
+    const input = `- test1
+- test2
+  - a
+- b`
+    const expect = `<ul><li>test1</li><li>test2<ul><li>a</li></ul></li><li>b</li></ul>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse nested lists (complex one)", () => {
+    const input = `- a
+- b
+  - c
+    - d
+  - e
+- f
+  1. g
+  2. h`
+    const expect = `<ul><li>a</li><li>b<ul><li>c<ul><li>d</li></ul></li><li>e</li></ul></li><li>f<ol><li>g</li><li>h</li></ol></li></ul>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse nested lists (separated)", () => {
+    const input = `- a
+- b
+  - c
+    - d
+  - e
+
+- f
+  1. g
+  2. h`
+    const expect = `<ul><li>a</li><li>b<ul><li>c<ul><li>d</li></ul></li><li>e</li></ul></li></ul><ul><li>f<ol><li>g</li><li>h</li></ol></li></ul>`
     assert.equal(parse(input), expect)
   })
 })
