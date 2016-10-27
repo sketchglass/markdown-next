@@ -104,10 +104,35 @@ const inline = P.alt(
     code,
     paragraphStr
   )
+const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
+const tableInline = tdStr
+const tableStart = P.string("| ")
+const tableEnd = P.string(" |")
+const tableSep = P.string(" | ")
+const tableInner = P.seqMap(tableInline.skip(tableSep).atLeast(1), tableInline, (a, b) => { return [...a, b] })
+const tableInnerOnlyHeader = P.seqMap(P.regexp(/-+/).skip(tableSep).atLeast(1), P.regexp(/-+/), (a, b) => { return [...a, b] })
+const tableHeader = tableStart.then(tableInner).skip(tableEnd).skip(linebreak)
+const tableHSep = tableStart.then(tableInnerOnlyHeader).skip(tableEnd).skip(linebreak)
+const tableBody = tableStart.then(tableInner).skip(tableEnd.then(linebreak.atMost(1)))
+const table = P.seqMap(
+  tableHeader,
+  tableHSep,
+  tableBody.atLeast(1),
+  (headers, _1, bodies) => {
+    let res = "<table><tr>"
+    for (const h of headers) res += "<th>" + h + "</th>"
+    res += "</tr>"
+    for (const b of bodies) {
+      res += "<tr>"
+      for (const x of b) res += "<td>" + x + "</td>"
+      res += "</tr>"
+    }
+    res += "</table>"
+    return res
+  }
+)
 
 const paragraph = inline.atLeast(1).map(x => x.join("")).map(surroundWith("p"))
-
-const paragraphStart = P.regexp(/^(?!(#|```))/)
 const paragraphBreak =  linebreak.atLeast(2).result("")
 
 const paragraphOrLinebreak = paragraph
@@ -267,6 +292,7 @@ const acceptables = P.alt(
     h3,
     h2,
     h1,
+    table,
     lists,
     codeBlock,
     blockquote,

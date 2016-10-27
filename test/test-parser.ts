@@ -215,4 +215,11 @@ para`
     const expect = `<p><img src="url" alt="alt" /></p>`
     assert.equal(parse(input), expect)
   })
+  it("should parse table", () => {
+    const input = `| a | b | c |
+| --- | -- | -- |
+| d | e | f |`
+    const expect = `<table><tr><th>a</th><th>b</th><th>c</th></tr><tr><td>d</td><td>e</td><td>f</td></tr></table>`
+    assert.equal(parse(input), expect)
+  })
 })

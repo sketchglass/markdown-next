@@ -11,8 +11,8 @@ Below is the list of what this is supported:
 - [x] a
 - [x] code
 - [x] blockquote(nesting is allowed)
-- [ ] table
-- [ ] img
+- [x] table
+- [x] img
 
 Note: This project is currently beta. Any API will be changed without notice.
 
