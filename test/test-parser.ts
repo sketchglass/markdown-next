@@ -79,7 +79,7 @@ para2`
     const input = `
 # header1
 paragraph`
-    const expect = "<br /><h1>header1</h1><p>paragraph</p>"
+    const expect = "<h1>header1</h1><p>paragraph</p>"
     assert.equal(parse(input), expect)
     const input2 = `# Lorem Ipsum
 
@@ -220,6 +220,16 @@ para`
 | --- | -- | -- |
 | d | e | f |`
     const expect = `<table><tr><th>a</th><th>b</th><th>c</th></tr><tr><td>d</td><td>e</td><td>f</td></tr></table>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse h1 after paragraph", () => {
+    const input = `para
+
+# h1
+
+para
+para`
+    const expect = `<p>para</p><h1>h1</h1><p>para<br />para</p>`
     assert.equal(parse(input), expect)
   })
 })

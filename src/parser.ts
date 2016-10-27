@@ -95,14 +95,14 @@ const code = codeStart
   .map(surroundWith("code"))
   .skip(codeEnd)
 
-const paragraphStr = P.regexp(/[^\r\n\[\]\*`]+/)
+const paragraphStr = P.regexp(/[^\r\n\[\]\*\#\-`]+/)
 const inline = P.alt(
     anchor,
     img,
     em,
     strong,
     code,
-    paragraphStr
+    paragraphStr,
   )
 const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
 const tableInline = tdStr
@@ -132,11 +132,12 @@ const table = P.seqMap(
   }
 )
 
-const paragraph = inline.atLeast(1).map(x => x.join("")).map(surroundWith("p"))
+const paragraphLine = inline.atLeast(1).map(x => x.join(""))
+const paragraph = P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine).map(x => x.join("")).or(paragraphLine).map(surroundWith("p"))
 const paragraphBreak =  linebreak.atLeast(2).result("")
 
-const paragraphOrLinebreak = paragraph
-  .or(paragraphBreak)
+const paragraphOrLinebreak = P.seq(paragraph, paragraphBreak, paragraph).map(x => x.join(""))
+  .or(paragraph)
   .atLeast(1)
   .map(x => x.join(""))
 
@@ -297,7 +298,7 @@ const acceptables = P.alt(
     codeBlock,
     blockquote,
     paragraphOrLinebreak,
-    linebreak.result("<br />"),
+    linebreak.result(""),
   ).many().map(x => x.join(""))
 
 export const parse = (s: string) => {
