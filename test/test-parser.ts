@@ -204,4 +204,9 @@ para`
     const expect = `<h1>aaaaa</h1><h2>bbbbb</h2><p>para</p>`
     assert.equal(parse(input), expect)
   })
+  it("should parse img", () => {
+    const input = `![alt](url)`
+    const expect = `<p><img src="url" alt="alt" /></p>`
+    assert.equal(parse(input), expect)
+  })
 })

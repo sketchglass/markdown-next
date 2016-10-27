@@ -78,6 +78,16 @@ const anchor = P.seqMap(
     return `<a href="${target}">${label}</a>`
   })
 
+const img = P.seqMap(
+  P.string("!["),
+  P.regexp(/[^\]\r\n]+/),
+  P.string("]("),
+  P.regexp(/[^\)\r\n]+/),
+  P.string(")"),
+  (_1, alt, _2, url, _3) => {
+    return `<img src="${url}" alt="${alt}" />`
+  })
+
 const codeStart = P.string("`")
 const codeEnd = P.string("`")
 const code = codeStart
@@ -88,6 +98,7 @@ const code = codeStart
 const paragraphStr = P.regexp(/[^\r\n\[\]\*`]+/)
 const inline = P.alt(
     anchor,
+    img,
     em,
     strong,
     code,
