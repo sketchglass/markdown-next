@@ -194,4 +194,14 @@ code block
     const expect = `<ul><li>a</li><li>b<ul><li>c<ul><li>d</li></ul></li><li>e</li></ul></li></ul><ul><li>f<ol><li>g</li><li>h</li></ol></li></ul>`
     assert.equal(parse(input), expect)
   })
+  it("should parse another form of headers", () => {
+    const input = `aaaaa
+===============
+bbbbb
+---------------
+
+para`
+    const expect = `<h1>aaaaa</h1><h2>bbbbb</h2><p>para</p>`
+    assert.equal(parse(input), expect)
+  })
 })

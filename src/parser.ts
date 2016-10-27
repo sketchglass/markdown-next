@@ -18,6 +18,8 @@ const asterisk = P.string("*")
 const sharp = P.string("#")
 const plainStr = P.regexp(/[^`\*\r\n]+/)
 const linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"))
+const equal = P.string("=")
+const minus = P.string("-")
 
 const surroundWith = (tag: string) => {
   return (s: string) => {
@@ -30,11 +32,11 @@ const token = (p: P.Parser<any>) => {
 const h1 = token(P.seq(
     sharp,
     whitespace,
-  ).then(plainStr)).map(surroundWith("h1"))
+  ).then(plainStr).or(plainStr.skip(P.seq(linebreak, equal.atLeast(1), linebreak)))).map(surroundWith("h1"))
 const h2 = token(P.seq(
     sharp.times(2),
     whitespace,
-  ).then(plainStr)).map(surroundWith("h2"))
+  ).then(plainStr).or(plainStr.skip(P.seq(linebreak, minus.atLeast(1), linebreak)))).map(surroundWith("h2"))
 const h3 = token(P.seq(
     sharp.times(3),
     whitespace,
