@@ -250,5 +250,18 @@ para
       const expect = `<p>para</p><p>para</p><p>para</p><ol><li>li</li><li>li</li></ol>`
       assert.equal(parse(input), expect)
     })
+    it("should parser h1/h2 eager", () => {
+      const input = `
+para1
+
+aaaa
+=================
+
+bbbb
+-----------------
+`
+      const expect = `<p>para1</p><h1>aaaa</h1><h2>bbbb</h2>`
+      assert.equal(parse(input), expect)
+    })
   })
 })

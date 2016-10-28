@@ -20,6 +20,7 @@ const plainStr = P.regexp(/[^`_\*\r\n]+/)
 const linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"))
 const equal = P.string("=")
 const minus = P.string("-")
+const paragraphStr = P.regexp(/(?![0-9]. )^[^\r\n\[\]\*\#\-`=][^\r\n\[\]\*`]*/)
 
 const surroundWith = (tag: string) => {
   return (s: string) => {
@@ -29,14 +30,16 @@ const surroundWith = (tag: string) => {
 const token = (p: P.Parser<any>) => {
   return p.skip(P.regexp(/\s*/m))
 }
+const h1Regex = P.regexp(/^(.*)\n\=+/, 1)
+const h2Regex = P.regexp(/^(.*)\n\-+/, 1)
 const h1 = token(P.seq(
     sharp,
     whitespace,
-  ).then(plainStr).or(plainStr.skip(P.seq(linebreak, equal.atLeast(1), linebreak)))).map(surroundWith("h1"))
+  ).then(plainStr).or(h1Regex)).map(surroundWith("h1"))
 const h2 = token(P.seq(
     sharp.times(2),
     whitespace,
-  ).then(plainStr).or(plainStr.skip(P.seq(linebreak, minus.atLeast(1), linebreak)))).map(surroundWith("h2"))
+  ).then(plainStr).or(h2Regex)).map(surroundWith("h2"))
 const h3 = token(P.seq(
     sharp.times(3),
     whitespace,
@@ -95,7 +98,6 @@ const code = codeStart
   .map(surroundWith("code"))
   .skip(codeEnd)
 
-const paragraphStr = P.regexp(/(?![0-9]. )^[^\r\n\[\]\*\#\-`][^\r\n\[\]\*`]*/)
 const inline = P.alt(
     anchor,
     img,
@@ -136,10 +138,8 @@ const paragraphLine = inline.atLeast(1).map(x => x.join(""))
 const paragraph = P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine).map(x => x.join("")).or(paragraphLine).map(surroundWith("p"))
 const paragraphBreak =  linebreak.atLeast(2).result("")
 
-const paragraphOrLinebreak = P.seq(paragraph, paragraphBreak, paragraph).map(x => x.join(""))
+const paragraphOrLinebreak = P.seq(paragraph, paragraphBreak).map(x => x.join(""))
   .or(paragraph)
-  .atLeast(1)
-  .map(x => x.join(""))
 
 const listIndent = P.string("  ")
 const liSingleLine = plainStr
@@ -287,6 +287,7 @@ const blockquote = P.lazy(() => {
   return blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many())
 })
 const acceptables = P.alt(
+    lists,
     h6,
     h5,
     h4,
@@ -294,7 +295,6 @@ const acceptables = P.alt(
     h2,
     h1,
     table,
-    lists,
     codeBlock,
     blockquote,
     paragraphOrLinebreak,
