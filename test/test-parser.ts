@@ -263,5 +263,70 @@ bbbb
       const expect = `<p>para1</p><h1>aaaa</h1><h2>bbbb</h2>`
       assert.equal(parse(input), expect)
     })
+    it('can parse a paragraph which begins with "#"', () => {
+      const input = `
+#this should be treated as paragraph.
+`
+      const expect = `<p>#this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "-"', () => {
+      const input = `
+-this should be treated as paragraph.
+`
+      const expect = `<p>-this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "["', () => {
+      const input = `
+[this should be treated as paragraph.
+`
+      const expect = `<p>[this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "*"', () => {
+      const input = `
+*this should be treated as paragraph.
+`
+      const expect = `<p>*this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "="', () => {
+      const input = `
+=this should be treated as paragraph.
+`
+      const expect = `<p>=this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "0."', () => {
+      const input = `
+0.this should be treated as paragraph.
+`
+      const expect = `<p>0.this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "]"', () => {
+      const input = `
+]this should be treated as paragraph.
+`
+      const expect = `<p>]this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph which begins with "`"', () => {
+      const input = `
+\`this should be treated as paragraph.
+`
+      const expect = `<p>\`this should be treated as paragraph.</p>`
+      assert.equal(parse(input), expect)
+    })
+    it('can parse a paragraph and a code block sepalatery', () => {
+      const input = `paragraph
+\`\`\`
+code block
+\`\`\`
+`
+      const expect = `<p>paragraph</p><pre><code>code block</code></pre>`
+      assert.equal(parse(input), expect)
+    })
   })
 })

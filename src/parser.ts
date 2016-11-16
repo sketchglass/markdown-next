@@ -20,7 +20,6 @@ const plainStr = P.regexp(/[^`_\*\r\n]+/)
 const linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"))
 const equal = P.string("=")
 const minus = P.string("-")
-const paragraphStr = P.regexp(/(?![0-9]. )^[^\r\n\[\]\*\#\-`=][^\r\n\[\]\*`]*/)
 
 const surroundWith = (tag: string) => {
   return (s: string) => {
@@ -30,16 +29,26 @@ const surroundWith = (tag: string) => {
 const token = (p: P.Parser<any>) => {
   return p.skip(P.regexp(/\s*/m))
 }
-const h1Regex = P.regexp(/^(.*)\n\=+/, 1)
-const h2Regex = P.regexp(/^(.*)\n\-+/, 1)
+const h1Special = P.regexp(/^(.*)\n\=+/, 1)
+  .skip(P.alt(
+    P.eof,
+    P.string("\n")
+  ))
+  .map(surroundWith("h1"))
+const h2Special = P.regexp(/^(.*)\n\-+/, 1)
+  .skip(P.alt(
+    P.eof,
+    P.string("\n")
+  ))
+  .map(surroundWith("h2"))
 const h1 = token(P.seq(
     sharp,
     whitespace,
-  ).then(plainStr).or(h1Regex)).map(surroundWith("h1"))
+  ).then(plainStr)).map(surroundWith("h1"))
 const h2 = token(P.seq(
     sharp.times(2),
     whitespace,
-  ).then(plainStr).or(h2Regex)).map(surroundWith("h2"))
+  ).then(plainStr)).map(surroundWith("h2"))
 const h3 = token(P.seq(
     sharp.times(3),
     whitespace,
@@ -104,7 +113,7 @@ const inline = P.alt(
     em,
     strong,
     code,
-    paragraphStr,
+    P.regexp(/^(?!```)./),
   )
 const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
 const tableInline = tdStr
@@ -135,11 +144,12 @@ const table = P.seqMap(
 )
 
 const paragraphLine = inline.atLeast(1).map(x => x.join(""))
-const paragraph = P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine).map(x => x.join("")).or(paragraphLine).map(surroundWith("p"))
-const paragraphBreak =  linebreak.atLeast(2).result("")
-
-const paragraphOrLinebreak = P.seq(paragraph, paragraphBreak).map(x => x.join(""))
-  .or(paragraph)
+const paragraph = P.lazy(() =>
+  P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine)
+    .map(x => x.join(""))
+    .or(paragraphLine)
+    .map(surroundWith("p"))
+  )
 
 const listIndent = P.string("  ")
 const liSingleLine = plainStr
@@ -234,8 +244,8 @@ const treeToHtml = (treeOrNode: ListTree) => {
   }
 }
 
-const codeBlockBegin = linebreak.atMost(1).then(P.string("```"))
-const codeBlockEnd = P.string("```").skip(linebreak.atMost(1))
+const codeBlockBegin = P.regexp(/^```/)
+const codeBlockEnd = P.regexp(/^```/)
 const codeBlockDefinitionStr = P.regexp(/[^`\r\n]*/)
 const codeBlockStr = P.regexp(/[^`\r\n]+/)
 const codeBlock = P.seqMap(
@@ -286,18 +296,25 @@ const blockquote = P.lazy(() => {
   createBlockquote = false
   return blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many())
 })
+
+const block = P.alt(
+  lists,
+  h1Special,
+  h2Special,
+  h6,
+  h5,
+  h4,
+  h3,
+  h2,
+  h1,
+  table,
+  codeBlock,
+  blockquote,
+  paragraph,
+)
+
 const acceptables = P.alt(
-    lists,
-    h6,
-    h5,
-    h4,
-    h3,
-    h2,
-    h1,
-    table,
-    codeBlock,
-    blockquote,
-    paragraphOrLinebreak,
+    block,
     linebreak.result(""),
   ).many().map(x => x.join(""))
 

@@ -70,7 +70,6 @@
 	var linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"));
 	var equal = P.string("=");
 	var minus = P.string("-");
-	var paragraphStr = P.regexp(/(?![0-9]. )^[^\r\n\[\]\*\#\-`=][^\r\n\[\]\*`]*/);
 	var surroundWith = function (tag) {
 	    return function (s) {
 	        return "<" + tag + ">" + s + "</" + tag + ">";
@@ -79,10 +78,14 @@
 	var token = function (p) {
 	    return p.skip(P.regexp(/\s*/m));
 	};
-	var h1Regex = P.regexp(/^(.*)\n\=+/, 1);
-	var h2Regex = P.regexp(/^(.*)\n\-+/, 1);
-	var h1 = token(P.seq(sharp, whitespace).then(plainStr).or(h1Regex)).map(surroundWith("h1"));
-	var h2 = token(P.seq(sharp.times(2), whitespace).then(plainStr).or(h2Regex)).map(surroundWith("h2"));
+	var h1Special = P.regexp(/^(.*)\n\=+/, 1)
+	    .skip(P.alt(P.eof, P.string("\n")))
+	    .map(surroundWith("h1"));
+	var h2Special = P.regexp(/^(.*)\n\-+/, 1)
+	    .skip(P.alt(P.eof, P.string("\n")))
+	    .map(surroundWith("h2"));
+	var h1 = token(P.seq(sharp, whitespace).then(plainStr)).map(surroundWith("h1"));
+	var h2 = token(P.seq(sharp.times(2), whitespace).then(plainStr)).map(surroundWith("h2"));
 	var h3 = token(P.seq(sharp.times(3), whitespace).then(plainStr)).map(surroundWith("h3"));
 	var h4 = token(P.seq(sharp.times(4), whitespace).then(plainStr)).map(surroundWith("h4"));
 	var h5 = token(P.seq(sharp.times(5), whitespace).then(plainStr)).map(surroundWith("h5"));
@@ -111,7 +114,7 @@
 	    .then(plainStr)
 	    .map(surroundWith("code"))
 	    .skip(codeEnd);
-	var inline = P.alt(anchor, img, em, strong, code, paragraphStr);
+	var inline = P.alt(anchor, img, em, strong, code, P.regexp(/^(?!```)./));
 	var tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/);
 	var tableInline = tdStr;
 	var tableStart = P.string("| ");
@@ -142,10 +145,12 @@
 	    return res;
 	});
 	var paragraphLine = inline.atLeast(1).map(function (x) { return x.join(""); });
-	var paragraph = P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine).map(function (x) { return x.join(""); }).or(paragraphLine).map(surroundWith("p"));
-	var paragraphBreak = linebreak.atLeast(2).result("");
-	var paragraphOrLinebreak = P.seq(paragraph, paragraphBreak).map(function (x) { return x.join(""); })
-	    .or(paragraph);
+	var paragraph = P.lazy(function () {
+	    return P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine)
+	        .map(function (x) { return x.join(""); })
+	        .or(paragraphLine)
+	        .map(surroundWith("p"));
+	});
 	var listIndent = P.string("  ");
 	var liSingleLine = plainStr;
 	var ulStart = P.string("- ").or(P.string("* "));
@@ -228,8 +233,8 @@
 	        return before_2 + children.map(treeToHtml).join("") + after_2;
 	    }
 	};
-	var codeBlockBegin = linebreak.atMost(1).then(P.string("```"));
-	var codeBlockEnd = P.string("```").skip(linebreak.atMost(1));
+	var codeBlockBegin = P.regexp(/^```/);
+	var codeBlockEnd = P.regexp(/^```/);
 	var codeBlockDefinitionStr = P.regexp(/[^`\r\n]*/);
 	var codeBlockStr = P.regexp(/[^`\r\n]+/);
 	var codeBlock = P.seqMap(codeBlockBegin, codeBlockDefinitionStr, linebreak, linebreak.or(codeBlockStr.skip(linebreak)).many(), codeBlockEnd, function (_1, definition, _2, code, _3) {
@@ -264,7 +269,8 @@
 	    createBlockquote = false;
 	    return blockquoteLine.atLeast(1).map(function (x) { return x.join("<br />"); }).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many());
 	});
-	var acceptables = P.alt(lists, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraphOrLinebreak, linebreak.result("")).many().map(function (x) { return x.join(""); });
+	var block = P.alt(lists, h1Special, h2Special, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraph);
+	var acceptables = P.alt(block, linebreak.result("")).many().map(function (x) { return x.join(""); });
 	exports.parse = function (s) {
 	    liLevelBefore = liLevel = null;
 	    rootTree = currentTree = {
