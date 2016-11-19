@@ -1,6 +1,8 @@
 # generic-markdown-parser
 [wip]Generic markdown parser
 
+[![CircleCI](https://circleci.com/gh/sketchglass/generic-markdown-parser.svg?style=svg)](https://circleci.com/gh/sketchglass/generic-markdown-parser)
+
 Below is the list of what this is supported:
 - [x] strong
 - [x] em
