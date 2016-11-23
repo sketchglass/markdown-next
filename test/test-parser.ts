@@ -328,5 +328,14 @@ code block
       const expect = `<p>paragraph</p><pre><code>code block</code></pre>`
       assert.equal(parse(input), expect)
     })
+    it('can parse incorrect code block as paragraph', () => {
+      const input = `paragraph
+\`\`\`
+code block
+\`
+`
+      const expect = `<p>paragraph<br />\`\`\`<br />code block<br />\`</p>`
+      assert.equal(parse(input), expect)
+    })
   })
 })
