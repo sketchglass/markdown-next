@@ -1,8 +1,9 @@
 {
   "name": "markdown-next",
   "version": "0.0.1",
-  "description": "",
-  "main": "lib/src/parser.js",
+  "description": "markdown-next parser for javascript",
+  "main": "./lib/src/parser.js",
+  "types": "./lib/src/parser.d.ts",
   "scripts": {
     "build": "tsc",
     "example": "cd examples && webpack",
@@ -10,6 +11,9 @@
   },
   "author": "minamorl",
   "license": "MIT",
+  "files": [
+    "./lib/src"
+  ],
   "devDependencies": {
     "@types/mocha": "^2.2.32",
     "@types/parsimmon": "^0.9.30",
@@ -21,5 +25,13 @@
   },
   "dependencies": {
     "parsimmon": "^1.0.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sketchglass/markdown-next.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sketchglass/markdown-next/issues"
+  },
+  "homepage": "https://github.com/sketchglass/markdown-next#readme"
 }
