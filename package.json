@@ -12,7 +12,7 @@
   "author": "minamorl",
   "license": "MIT",
   "files": [
-    "./lib/src"
+    "lib/src/"
   ],
   "devDependencies": {
     "@types/mocha": "^2.2.32",
