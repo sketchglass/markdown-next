@@ -1,5 +1,5 @@
-# generic-markdown-parser
-[wip]Generic markdown parser
+# markdown-next
+markdown-next parser
 
 [![CircleCI](https://circleci.com/gh/sketchglass/markdown-next.svg?style=svg)](https://circleci.com/gh/sketchglass/markdown-next)
 
