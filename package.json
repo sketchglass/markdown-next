@@ -1,6 +1,5 @@
 {
   "name": "markdown-next",
-  "version": "0.0.1",
   "description": "markdown-next parser for javascript",
   "main": "./lib/src/parser.js",
   "types": "./lib/src/parser.d.ts",
