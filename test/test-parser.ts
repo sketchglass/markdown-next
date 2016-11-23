@@ -334,7 +334,7 @@ code block
 code block
 \`
 `
-      const expect = `<p>paragraph<br />\`\`\`<br />code block<br />\``
+      const expect = `<p>paragraph<br />\`\`\`<br />code block<br />\`</p>`
       assert.equal(parse(input), expect)
     })
   })

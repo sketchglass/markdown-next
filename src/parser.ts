@@ -1,4 +1,4 @@
-import * as P from "parsimmon"
+import P = require("parsimmon")
 
 interface IndexType {
   offset: number
@@ -11,6 +11,43 @@ interface ListTree {
   children: Array<ListTree>
   value: string | null
   parent: ListTree | null
+}
+
+const not = (str) => {
+  const {makeSuccess, makeFailure} = P as any
+  let expected = '\'' + str + '\'';
+  return (P as any)(function(input, i) {
+    let j = i + str.length;
+    let head = input.slice(i, j);
+    if (head === str) {
+      return makeFailure(j, head);
+    } else {
+      return makeSuccess(i, expected);
+    }
+  })
+}
+
+function flags(re) {
+  var s = '' + re;
+  return s.slice(s.lastIndexOf('/') + 1);
+}
+
+function ignore(re, group=0) {
+  const {makeSuccess, makeFailure} = P as any
+
+  const anchored = RegExp('^(?:' + re.source + ')', flags(re));
+  const expected = '' + re;
+  return (P as any)(function(input, i) {
+    var match = anchored.exec(input.slice(i));
+    if (match) {
+      var fullMatch = match[0];
+      var groupMatch = match[group];
+      if (groupMatch != null) {
+        return makeFailure(i + fullMatch.length, groupMatch);
+      }
+    }
+    return makeSuccess(i, expected);
+  });
 }
 
 const whitespace = P.regexp(/\s+/m)
@@ -113,7 +150,7 @@ const inline = P.alt(
     em,
     strong,
     code,
-    P.regexp(/^(?!```)./),
+    P.regexp(/./),
   )
 const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
 const tableInline = tdStr
@@ -143,13 +180,19 @@ const table = P.seqMap(
   }
 )
 
-const paragraphLine = inline.atLeast(1).map(x => x.join(""))
-const paragraph = P.lazy(() =>
-  P.seq(paragraphLine, linebreak.result("<br />"), paragraphLine)
-    .map(x => x.join(""))
-    .or(paragraphLine)
+const inlines = inline.atLeast(1).map(x => x.join(""))
+const paragraphBegin = inlines
+const paragraphEnd = ignore(/```\n.*\n```/)
+const paragraphLine = P.lazy(() => P.alt(
+  P.seq(
+    paragraphBegin,
+    linebreak.skip(paragraphEnd).result("<br />"),
+    paragraphLine
+  ).map(x => x.join("")),
+  inlines
+))
+const paragraph = paragraphLine
     .map(surroundWith("p"))
-  )
 
 const listIndent = P.string("  ")
 const liSingleLine = plainStr
@@ -298,6 +341,7 @@ const blockquote = P.lazy(() => {
 })
 
 const block = P.alt(
+  P.regexp(/\s+/).result(""),
   lists,
   h1Special,
   h2Special,
@@ -311,11 +355,11 @@ const block = P.alt(
   codeBlock,
   blockquote,
   paragraph,
+  linebreak.result(""),
 )
 
 const acceptables = P.alt(
     block,
-    linebreak.result(""),
   ).many().map(x => x.join(""))
 
 export const parse = (s: string) => {
@@ -326,9 +370,10 @@ export const parse = (s: string) => {
     type: "shadow",
     parent: null
   }
-  const parsed = acceptables.parse(s)
+  const parsed = acceptables.parse(s.trim())
   if(parsed.hasOwnProperty("value"))
     return parsed.value
+  console.error(s.trim())
   console.error(parsed)
   throw new Error("Parsing was failed.")
 }
