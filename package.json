@@ -32,5 +32,6 @@
   "bugs": {
     "url": "https://github.com/sketchglass/markdown-next/issues"
   },
-  "homepage": "https://github.com/sketchglass/markdown-next#readme"
+  "homepage": "https://github.com/sketchglass/markdown-next#readme",
+  "version": "0.0.1"
 }
