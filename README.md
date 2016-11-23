@@ -1,7 +1,7 @@
 # markdown-next
 markdown-next parser
 
-[![CircleCI](https://circleci.com/gh/sketchglass/generic-markdown-parser.svg?style=svg)](https://circleci.com/gh/sketchglass/generic-markdown-parser)
+[![CircleCI](https://circleci.com/gh/sketchglass/markdown-next.svg?style=svg)](https://circleci.com/gh/sketchglass/markdown-next)
 
 Below is the list of what this is supported:
 - [x] strong
@@ -24,7 +24,7 @@ Clone this repo and execute `npm run install`.
 ## Usage
 
 ```
-import {parse} from "generic-markdown-parser"
+const markdown = require("markdown-next")
 ```
 
 ### parse(s: string): string
@@ -34,7 +34,7 @@ parse(string)
 ```
 
 ## Test and Development
-Run `npm test` command for testing. Under `src/test` contains unit testings.
+Run `npm test` command for testing. Under `test` contains unit testings.
 
 ## Contribution
 Any PR is welcome.
