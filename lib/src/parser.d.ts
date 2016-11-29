@@ -27,4 +27,5 @@ export declare class Parser<T> {
     parse(s: string): T | undefined;
 }
 export declare const asHTML: ResultType<string>;
+export declare const asAST: ResultType<any>;
 export declare const parse: (s: string) => any;

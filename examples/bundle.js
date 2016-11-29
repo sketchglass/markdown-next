@@ -243,7 +243,7 @@
 	            }
 	            else if (treeOrNode.children.length !== 0 && treeOrNode.value !== null) {
 	                var children = treeOrNode.children;
-	                return mapper("li")(treeOrNode.value + mapper(treeOrNode.children[0].type)(join(children.map(treeToHtml))));
+	                return mapper("li")(join([treeOrNode.value, mapper(treeOrNode.children[0].type)(join(children.map(treeToHtml)))]));
 	            }
 	            else {
 	                var children = treeOrNode.children;
@@ -316,6 +316,14 @@
 	        children ? ">" + children + "</" + tag + ">" : " />"
 	    ].join(""); }; },
 	    join: function (x) { return x.join(""); }
+	};
+	exports.asAST = {
+	    mapper: function (tag, args) { return function (children) { return [
+	        tag,
+	        args ? args : null,
+	        children
+	    ]; }; },
+	    join: function (x) { return x; } // identical
 	};
 	var p = new Parser({
 	    type: exports.asHTML,

@@ -284,7 +284,7 @@ class Parser<T> {
         return mapper("li")(treeOrNode.value)
       } else if(treeOrNode.children.length !== 0 && treeOrNode.value !== null) {
         const {children} = treeOrNode
-        return mapper("li")(treeOrNode.value + mapper(treeOrNode.children[0].type)(join(children.map(treeToHtml))))
+        return mapper("li")(join([treeOrNode.value, mapper(treeOrNode.children[0].type)(join(children.map(treeToHtml)))]))
       } else {
         const {children} = treeOrNode
         return mapper(treeOrNode.type)(join(children.map(treeToHtml)))
@@ -392,6 +392,15 @@ export const asHTML: ResultType<string> = {
     children ? ">" + children + "</" + tag + ">" : " />"
   ].join(""),
   join: x => x.join("")
+}
+
+export const asAST: ResultType<any> = {
+  mapper: (tag, args) => children => [
+    tag,
+    args ? args : null,
+    children
+  ],
+  join: x => x // identical
 }
 
 const p = new Parser<any>({
