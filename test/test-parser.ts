@@ -1,6 +1,6 @@
 import * as assert from 'power-assert'
 
-import {parse} from "../src/parser"
+import {parse, Parser, asAST} from "../src/parser"
 
 describe("parser", () => {
   it('should parse h1', () => {
@@ -336,6 +336,38 @@ code block
 `
       const expect = `<p>paragraph<br />\`\`\`<br />code block<br />\`</p>`
       assert.equal(parse(input), expect)
+    })
+  })
+  describe("AST", () => {
+    it("can output paragraph", () => {
+      const parser = new Parser({
+        type: asAST
+      })
+      const input = `
+  paragraph
+  `
+      const expect = [["p", null, ["paragraph"]]]
+      assert.deepEqual(parser.parse(input), expect)
+    })
+    it("can output list", () => {
+      const parser = new Parser({
+        type: asAST
+      })
+      const input = `
+- li1
+- li2
+  - li3
+`
+      const expect = [["ul", null, [
+        ["li", null, "li1"],
+        ["li", null, [
+          "li2",
+          ["ul", null, [
+            ["li", null, "li3"]
+          ]],
+        ]],
+      ]]]
+      assert.deepEqual(parser.parse(input), expect)
     })
   })
 })
