@@ -15,7 +15,10 @@ interface ListTree {
 }
 
 export
-class Parser {
+type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T
+
+export
+class Parser<T> {
   liLevelBefore: number | null = null
   liLevel: number | null = null
   rootTree: ListTree = {
@@ -30,8 +33,14 @@ class Parser {
     type: "shadow",
     parent: null
   }
-  acceptables: P.Parser<string>
-  constructor(opts?: {silent: boolean, mapper:  (tagName: string) => (children: any) => string}) {
+  acceptables: P.Parser<T>
+  constructor(public opts: {
+    mapper: Mapper<T>
+    join: (obj: Array<T>) => T
+  }) {
+    this.create()
+  }
+  create() {
     function flags(re) {
       var s = '' + re;
       return s.slice(s.lastIndexOf('/') + 1);
@@ -63,11 +72,9 @@ class Parser {
     const equal = P.string("=")
     const minus = P.string("-")
 
-    const surroundWith = (tag: string) => {
-      return (s: string) => {
-        return `<${tag}>${s}</${tag}>`
-      }
-    }
+
+    const join:any = this.opts.join
+    const mapper = this.opts.mapper
     const token = (p: P.Parser<any>) => {
       return p.skip(P.regexp(/\s*/m))
     }
@@ -76,50 +83,50 @@ class Parser {
         P.eof,
         P.string("\n")
       ))
-      .map(surroundWith("h1"))
+      .map(mapper("h1"))
     const h2Special = P.regexp(/^(.*)\n\-+/, 1)
       .skip(P.alt(
         P.eof,
         P.string("\n")
       ))
-      .map(surroundWith("h2"))
+      .map(mapper("h2"))
     const h1 = token(P.seq(
         sharp,
         whitespace,
-      ).then(plainStr)).map(surroundWith("h1"))
+      ).then(plainStr)).map(mapper("h1"))
     const h2 = token(P.seq(
         sharp.times(2),
         whitespace,
-      ).then(plainStr)).map(surroundWith("h2"))
+      ).then(plainStr)).map(mapper("h2"))
     const h3 = token(P.seq(
         sharp.times(3),
         whitespace,
-      ).then(plainStr)).map(surroundWith("h3"))
+      ).then(plainStr)).map(mapper("h3"))
     const h4 = token(P.seq(
         sharp.times(4),
         whitespace,
-      ).then(plainStr)).map(surroundWith("h4"))
+      ).then(plainStr)).map(mapper("h4"))
     const h5 = token(P.seq(
         sharp.times(5),
         whitespace,
-      ).then(plainStr)).map(surroundWith("h5"))
+      ).then(plainStr)).map(mapper("h5"))
     const h6 = token(P.seq(
         sharp.times(6),
         whitespace,
-      ).then(plainStr)).map(surroundWith("h6"))
+      ).then(plainStr)).map(mapper("h6"))
 
     const strongStart = P.string("**").or(P.string("__"))
     const strongEnd = strongStart
     const strong = strongStart
       .then(plainStr)
-      .map(surroundWith("strong"))
+      .map(mapper("strong"))
       .skip(strongEnd)
 
     const emStart = P.string("*").or(P.string("_"))
     const emEnd = emStart
     const em = emStart
       .then(plainStr)
-      .map(surroundWith("em"))
+      .map(mapper("em"))
       .skip(emEnd)
 
     const anchor = P.seqMap(
@@ -128,8 +135,8 @@ class Parser {
       P.string("]("),
       P.regexp(/[^\)\r\n]+/),
       P.string(")"),
-      (_1, label, _2, target, _3) => {
-        return `<a href="${target}">${label}</a>`
+      (_1, label, _2, href, _3) => {
+        return mapper("a", {href})(label)
       })
 
     const img = P.seqMap(
@@ -138,15 +145,15 @@ class Parser {
       P.string("]("),
       P.regexp(/[^\)\r\n]+/),
       P.string(")"),
-      (_1, alt, _2, url, _3) => {
-        return `<img src="${url}" alt="${alt}" />`
+      (_1, alt, _2, src, _3) => {
+        return mapper("img", {src, alt})(null)
       })
 
     const codeStart = P.string("`")
     const codeEnd = P.string("`")
     const code = codeStart
       .then(plainStr)
-      .map(surroundWith("code"))
+      .map(mapper("code"))
       .skip(codeEnd)
 
     const inline = P.alt(
@@ -155,6 +162,7 @@ class Parser {
         em,
         strong,
         code,
+        P.regexp(/[^\r\n=-\[\]\*\`]+/),
         P.regexp(/./),
       )
     const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
@@ -171,33 +179,25 @@ class Parser {
       tableHeader,
       tableHSep,
       tableBody.atLeast(1),
-      (headers, _1, bodies) => {
-        let res = "<table><tr>"
-        for (const h of headers) res += "<th>" + h + "</th>"
-        res += "</tr>"
-        for (const b of bodies) {
-          res += "<tr>"
-          for (const x of b) res += "<td>" + x + "</td>"
-          res += "</tr>"
-        }
-        res += "</table>"
-        return res
-      }
+      (headers, _1, bodies) => mapper("table")(join([
+        mapper("tr")(join(headers.map(h => mapper("th")(h)))),
+        join(bodies.map(b => mapper("tr")(join(b.map(x => mapper("td")(x))))))
+      ]))
     )
 
-    const inlines = inline.atLeast(1).map(x => x.join(""))
+    const inlines = inline.atLeast(1).map(join)
     const paragraphBegin = inlines
     const paragraphEnd = ignore(/```\n.*\n```/)
     const paragraphLine = P.lazy(() => P.alt(
       P.seq(
         paragraphBegin,
-        linebreak.skip(paragraphEnd).result("<br />"),
+        linebreak.skip(paragraphEnd).result(mapper("br")(null)),
         paragraphLine
-      ).map(x => x.join("")),
+      ).map(join),
       inlines
     ))
     const paragraph = paragraphLine
-        .map(surroundWith("p"))
+        .map(mapper("p"))
 
     const listIndent = P.string("  ")
     const liSingleLine = plainStr
@@ -274,19 +274,15 @@ class Parser {
 
     const treeToHtml = (treeOrNode: ListTree) => {
       if(treeOrNode.type === "shadow") {
-        return treeOrNode.children.map(treeToHtml).join("")
+        return join(treeOrNode.children.map(treeToHtml))
       } else if(treeOrNode.children.length === 0 && treeOrNode.value !== null) {
-        return "<li>" + treeOrNode.value + "</li>"
+        return mapper("li")(treeOrNode.value)
       } else if(treeOrNode.children.length !== 0 && treeOrNode.value !== null) {
         const {children} = treeOrNode
-        const before = `<${treeOrNode.children[0].type}>`
-        const after = `</${treeOrNode.children[0].type}>`
-        return "<li>" + treeOrNode.value + before + children.map(treeToHtml).join("") + after + "</li>"
+        return mapper("li")(treeOrNode.value + mapper(treeOrNode.children[0].type)(join(children.map(treeToHtml))))
       } else {
-        const before = `<${treeOrNode.type}>`
-        const after = `</${treeOrNode.type}>`
         const {children} = treeOrNode
-        return before + children.map(treeToHtml).join("") + after
+        return mapper(treeOrNode.type)(join(children.map(treeToHtml)))
       }
     }
 
@@ -301,7 +297,7 @@ class Parser {
         linebreak.or(codeBlockStr.skip(linebreak)).many(),
         codeBlockEnd,
         (_1, definition, _2, code, _3) => {
-          return `<pre><code>${code.join("")}</code></pre>`
+          return mapper("pre")(mapper("code")(join(code)))
         })
 
     const blockquoteStr = P.regexp(/[^\r\n]+/)
@@ -332,7 +328,7 @@ class Parser {
         linebreak.atMost(1),
         (_1, s, _2) => {
           if (createBlockquote)
-            return surroundWith("blockquote")(s)
+            return mapper("blockquote")(s)
           return s
         }
       )
@@ -340,7 +336,9 @@ class Parser {
     const blockquote = P.lazy(() => {
       blockquoteLevel = null
       createBlockquote = false
-      return blockquoteLine.atLeast(1).map(x => x.join("<br />")).map(surroundWith("p")).map(surroundWith("blockquote")).skip(whitespace.many())
+      return blockquoteLine.atLeast(1).map(x =>
+        x.reduce((a, b) => join([a, mapper("br")(null), b]))
+      ).map(mapper("p")).map(mapper("blockquote")).skip(whitespace.many())
     })
 
     const block = P.alt(
@@ -362,8 +360,8 @@ class Parser {
     )
 
     this.acceptables = P.alt(
-        block,
-      ).many().map(x => x.join(""))
+      block
+    ).many().map(join) as any as P.Parser<T>
   }
   parse(s: string) {
     this.liLevelBefore = this.liLevel = null
@@ -382,7 +380,16 @@ class Parser {
   }
 }
 
-const p = new Parser()
+const defaultMapper: Mapper<string> = (tag, args) => children => [
+  "<" + tag,
+  args  ? " " + Object.keys(args).map(x => `${x}="${args[x]}"`).join(" ") : "",
+  children ? ">" + children + "</" + tag + ">" : " />"
+].join("")
+
+const p = new Parser<any>({
+  mapper: defaultMapper,
+  join: x => x.join("")
+})
 export const parse = (s: string) => {
   return p.parse(s)
 }
