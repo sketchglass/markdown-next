@@ -112,8 +112,8 @@
 	        var linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"));
 	        var equal = P.string("=");
 	        var minus = P.string("-");
-	        var join = this.opts.join;
-	        var mapper = this.opts.mapper;
+	        var join = this.opts.type.join;
+	        var mapper = this.opts.type.mapper;
 	        var token = function (p) {
 	            return p.skip(P.regexp(/\s*/m));
 	        };
@@ -188,6 +188,7 @@
 	            liLevelBefore = liLevel;
 	            liLevel = _index.column;
 	        }), ulStart.or(olStart), function (_1, start) {
+	            // detect which types of content
 	            nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol";
 	        }).then(liSingleLine).skip(linebreak.atMost(1)).map(function (x) {
 	            if (liLevelBefore == liLevel) {
@@ -308,14 +309,16 @@
 	    return Parser;
 	}());
 	exports.Parser = Parser;
-	var defaultMapper = function (tag, args) { return function (children) { return [
-	    "<" + tag,
-	    args ? " " + Object.keys(args).map(function (x) { return x + "=\"" + args[x] + "\""; }).join(" ") : "",
-	    children ? ">" + children + "</" + tag + ">" : " />"
-	].join(""); }; };
-	var p = new Parser({
-	    mapper: defaultMapper,
+	exports.asHTML = {
+	    mapper: function (tag, args) { return function (children) { return [
+	        "<" + tag,
+	        args ? " " + Object.keys(args).map(function (x) { return (x + "=\"" + args[x] + "\""); }).join(" ") : "",
+	        children ? ">" + children + "</" + tag + ">" : " />"
+	    ].join(""); }; },
 	    join: function (x) { return x.join(""); }
+	};
+	var p = new Parser({
+	    type: exports.asHTML,
 	});
 	exports.parse = function (s) {
 	    return p.parse(s);
