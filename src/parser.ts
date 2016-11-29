@@ -251,8 +251,11 @@ class Parser<T> {
           value: x
         })
       } else if(liLevelBefore > liLevel) {
-        if(this.currentTree.parent !== null) {
-          this.currentTree = this.currentTree.parent
+        const unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length
+        for (let i = 0; i < unindetationStep; i++) {
+          if(this.currentTree.parent !== null) {
+            this.currentTree = this.currentTree.parent
+          }
         }
         this.currentTree.children.push({
           type: nodeType,

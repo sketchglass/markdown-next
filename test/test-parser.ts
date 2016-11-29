@@ -187,6 +187,15 @@ code block
     const expect = `<ul><li>a</li><li>b<ul><li>c<ul><li>d</li></ul></li><li>e</li></ul></li><li>f<ol><li>g</li><li>h</li></ol></li></ul>`
     assert.equal(parse(input), expect)
   })
+  it("should parse unindentation in list correctly", () => {
+    const input = `
+- a
+  - b
+    - c
+- d`
+    const expect = `<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li><li>d</li></ul>`
+    assert.equal(parse(input), expect)
+  })
   it("should parse nested lists (separated)", () => {
     const input = `- a
 - b
