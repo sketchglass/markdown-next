@@ -350,7 +350,7 @@ code block
   describe("AST", () => {
     it("can output paragraph", () => {
       const parser = new Parser({
-        type: asAST
+        export: asAST
       })
       const input = `
   paragraph
@@ -360,7 +360,7 @@ code block
     })
     it("can output list", () => {
       const parser = new Parser({
-        type: asAST
+        export: asAST
       })
       const input = `
 - li1

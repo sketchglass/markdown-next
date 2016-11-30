@@ -7,13 +7,13 @@ export interface ListTree {
     parent: ListTree | null;
 }
 export declare type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T;
-export interface ResultType<T> {
+export interface ExportType<T> {
     mapper: Mapper<T>;
     join: Function;
 }
 export declare class Parser<T> {
     opts: {
-        type: ResultType<T>;
+        export: ExportType<T>;
     };
     liLevelBefore: number | null;
     liLevel: number | null;
@@ -21,11 +21,11 @@ export declare class Parser<T> {
     currentTree: ListTree;
     acceptables: P.Parser<T>;
     constructor(opts: {
-        type: ResultType<T>;
+        export: ExportType<T>;
     });
     create(): void;
     parse(s: string): T | undefined;
 }
-export declare const asHTML: ResultType<string>;
-export declare const asAST: ResultType<any>;
+export declare const asHTML: ExportType<string>;
+export declare const asAST: ExportType<any>;
 export declare const parse: (s: string) => any;
