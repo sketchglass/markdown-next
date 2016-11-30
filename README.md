@@ -1,9 +1,9 @@
 # markdown-next
 markdown-next parser
 
-[![CircleCI](https://circleci.com/gh/sketchglass/markdown-next.svg?style=svg)](https://circleci.com/gh/sketchglass/markdown-next)
+[![CircleCI](https://circleci.com/gh/sketchglass/markdown-next.svg?style=svg)](https://circleci.com/gh/sketchglass/markdown-next) [![npm version](https://badge.fury.io/js/markdown-next.svg)](https://badge.fury.io/js/markdown-next)
 
-Below is the list of what this is supported:
+Below is the list of what is supported:
 - [x] strong
 - [x] em
 - [x] p
@@ -21,7 +21,7 @@ Note: This project is currently beta. Any API will be changed without notice.
 ## Install
 Clone this repo and execute `npm run install`.
 
-## Usage
+## Basic Usage
 
 ```
 const markdown = require("markdown-next")
@@ -29,15 +29,29 @@ const markdown = require("markdown-next")
 
 ### parse(s: string): string
 Returns parsed html string.
+This is mostly shorthand of `new Parser({type: asHTML}).parse`.
 ```
 parse(string)
 ```
 
+### Parser({export: ExportType})
+
+It takes `ExportType` object and make new parser.
+Currently, there are two options: `asHTML` and `asAST` which creates HTML and AST respectively
+
+```
+const markdown = require("markdown-next")
+const parser = new markdown.Parser({
+  export: markdown.asHTML
+})
+parser.parse(string)
+```
+
 ## Test and Development
-Run `npm test` command for testing. Under `test` contains unit testings.
+Run `npm test` command for testing. Under `test` contains unit tests.
 
 ## Contribution
-Any PR is welcome.
+Any suggestion or PR is welcome.
 
 ## LICENSE
 MIT

@@ -18,7 +18,7 @@ export
 type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T
 
 export
-interface ResultType<T> {
+interface ExportType<T> {
   mapper: Mapper<T>
   join:  Function
 }
@@ -41,7 +41,7 @@ class Parser<T> {
   }
   acceptables: P.Parser<T>
   constructor(public opts: {
-    type: ResultType<T>
+    export: ExportType<T>
   }) {
     this.create()
   }
@@ -78,8 +78,8 @@ class Parser<T> {
     const minus = P.string("-")
 
 
-    const join:any = this.opts.type.join
-    const mapper = this.opts.type.mapper
+    const join:any = this.opts.export.join
+    const mapper = this.opts.export.mapper
     const token = (p: P.Parser<any>) => {
       return p.skip(P.regexp(/\s*/m))
     }
@@ -388,7 +388,7 @@ class Parser<T> {
   }
 }
 
-export const asHTML: ResultType<string> = {
+export const asHTML: ExportType<string> = {
   mapper: (tag, args) => children => [
     "<" + tag,
     args  ? " " + Object.keys(args).map(x => `${x}="${args[x]}"`).join(" ") : "",
@@ -397,7 +397,7 @@ export const asHTML: ResultType<string> = {
   join: x => x.join("")
 }
 
-export const asAST: ResultType<any> = {
+export const asAST: ExportType<any> = {
   mapper: (tag, args) => children => [
     tag,
     args ? args : null,
@@ -407,7 +407,7 @@ export const asAST: ResultType<any> = {
 }
 
 const p = new Parser<any>({
-  type: asHTML,
+  export: asHTML,
 })
 export const parse = (s: string) => {
   return p.parse(s)
