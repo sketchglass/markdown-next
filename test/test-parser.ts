@@ -1,6 +1,6 @@
 import * as assert from 'power-assert'
 
-import {parse, Parser, asAST} from "../src/parser"
+import {parse, Parser, asAST, asHTML} from "../src/parser"
 
 describe("parser", () => {
   it('should parse h1', () => {
@@ -230,6 +230,36 @@ para`
 | d | e | f |`
     const expect = `<table><tr><th>a</th><th>b</th><th>c</th></tr><tr><td>d</td><td>e</td><td>f</td></tr></table>`
     assert.equal(parse(input), expect)
+  })
+  it("should parse extension syntax", () => {
+    const p = new Parser({
+      export: asHTML,
+      plugins: {
+        id: (args, str) => {
+          return str
+        }
+      }
+    })
+    const input = `
+@[id]
+  this should be showed as plain string
+  following string also should be treated as content
+`
+    assert.equal(p.parse(input), "this should be showed as plain string\nfollowing string also should be treated as content\n")
+  })
+  it("should parse inline extension syntax", () => {
+    const p = new Parser({
+      export: asHTML,
+      plugins: {
+        print: (args, str) => {
+          return args
+        }
+      }
+    })
+    const input = `
+x is @[print:40]
+`
+    assert.equal(p.parse(input), "<p>x is 40</p>")
   })
   describe("courner cases", () => {
     it("should parse h1 after paragraph", () => {

@@ -112,8 +112,8 @@
 	        var linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"));
 	        var equal = P.string("=");
 	        var minus = P.string("-");
-	        var join = this.opts.type.join;
-	        var mapper = this.opts.type.mapper;
+	        var join = this.opts.export.join;
+	        var mapper = this.opts.export.mapper;
 	        var token = function (p) {
 	            return p.skip(P.regexp(/\s*/m));
 	        };
@@ -153,7 +153,10 @@
 	            .then(plainStr)
 	            .map(mapper("code"))
 	            .skip(codeEnd);
-	        var inline = P.alt(anchor, img, em, strong, code, P.regexp(/[^\r\n=-\[\]\*\`]+/), P.regexp(/./));
+	        var pluginInline = P.seqMap(P.string("@["), P.regexp(/[a-zA-Z]+/), P.regexp(/:{0,1}([^\]]*)/, 1), P.string("]"), function (_1, pluginName, args, _2) {
+	            return _this.opts.plugins && _this.opts.plugins[pluginName] ? _this.opts.plugins[pluginName](args, null) : join([_1, pluginName, args, _2]);
+	        });
+	        var inline = P.alt(pluginInline, anchor, img, em, strong, code, P.regexp(/[^\r\n=-\[\]\*\`\@]+/), P.regexp(/./));
 	        var tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/);
 	        var tableInline = tdStr;
 	        var tableStart = P.string("| ");
@@ -291,7 +294,10 @@
 	                return x.reduce(function (a, b) { return join([a, mapper("br")(null), b]); });
 	            }).map(mapper("p")).map(mapper("blockquote")).skip(whitespace.many());
 	        });
-	        var block = P.alt(P.regexp(/\s+/).result(""), lists, h1Special, h2Special, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraph, linebreak.result(""));
+	        var pluginBlock = P.seqMap(P.string("@["), P.regexp(/[a-zA-Z]+/), P.regexp(/(:[^\]]*)*/), P.string("]\n"), P.seq(P.string("  ").result(""), P.regexp(/[^\r\n]+/), linebreak.atMost(1).result("\n")).map(join).atLeast(1).map(join), function (_1, pluginName, args, _2, content) {
+	            return _this.opts.plugins && _this.opts.plugins[pluginName] ? _this.opts.plugins[pluginName](args, content) : join([_1, pluginName, args, _2, content]);
+	        });
+	        var block = P.alt(P.regexp(/\s+/).result(""), pluginBlock, lists, h1Special, h2Special, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraph, linebreak.result(""));
 	        this.acceptables = P.alt(block).many().map(join);
 	    };
 	    Parser.prototype.parse = function (s) {
@@ -329,7 +335,7 @@
 	    join: function (x) { return x; } // identical
 	};
 	var p = new Parser({
-	    type: exports.asHTML,
+	    export: exports.asHTML,
 	});
 	exports.parse = function (s) {
 	    return p.parse(s);
