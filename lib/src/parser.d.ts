@@ -10,6 +10,7 @@ export declare type Mapper<T> = (tagName: string, attributes?: any) => (children
 export interface ExportType<T> {
     mapper: Mapper<T>;
     join: Function;
+    postprocess: (x: any) => any;
 }
 export declare class Parser<T> {
     opts: {
@@ -24,7 +25,7 @@ export declare class Parser<T> {
         export: ExportType<T>;
     });
     create(): void;
-    parse(s: string): T | undefined;
+    parse(s: string): any;
 }
 export declare const asHTML: ExportType<string>;
 export declare const asAST: ExportType<any>;

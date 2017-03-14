@@ -21,6 +21,7 @@ export
 interface ExportType<T> {
   mapper: Mapper<T>
   join:  Function
+  postprocess: (x: any) => any
 }
 
 export
@@ -234,35 +235,37 @@ class Parser<T> {
         nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
       }
     ).then(liSingleLine).skip(linebreak.atMost(1)).map(x => {
-      if(liLevelBefore == liLevel) {
-        this.currentTree.children.push({
-          value: x,
-          children: [],
-          type: nodeType,
-          parent: this.currentTree
-        })
-      } else if(liLevelBefore < liLevel) {
-        const currentTreeIndex = this.currentTree.children.length - 1
-        this.currentTree = this.currentTree.children[currentTreeIndex]
-        this.currentTree.children.push({
-          children: [],
-          type: nodeType,
-          parent: this.currentTree,
-          value: x
-        })
-      } else if(liLevelBefore > liLevel) {
-        const unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length
-        for (let i = 0; i < unindetationStep; i++) {
-          if(this.currentTree.parent !== null) {
-            this.currentTree = this.currentTree.parent
+      if(liLevel !== null && liLevelBefore !== null) {
+        if(liLevelBefore == liLevel) {
+          this.currentTree.children.push({
+            value: x,
+            children: [],
+            type: nodeType,
+            parent: this.currentTree
+          })
+        } else if(liLevelBefore < liLevel) {
+          const currentTreeIndex = this.currentTree.children.length - 1
+          this.currentTree = this.currentTree.children[currentTreeIndex]
+          this.currentTree.children.push({
+            children: [],
+            type: nodeType,
+            parent: this.currentTree,
+            value: x
+          })
+        } else if(liLevelBefore > liLevel) {
+          const unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length
+          for (let i = 0; i < unindetationStep; i++) {
+            if(this.currentTree.parent !== null) {
+              this.currentTree = this.currentTree.parent
+            }
           }
+          this.currentTree.children.push({
+            type: nodeType,
+            children: [],
+            parent: this.currentTree,
+            value: x
+          })
         }
-        this.currentTree.children.push({
-          type: nodeType,
-          children: [],
-          parent: this.currentTree,
-          value: x
-        })
       }
       const _nodeType = nodeType
       return _nodeType
@@ -381,7 +384,7 @@ class Parser<T> {
     }
     const parsed = this.acceptables.parse(s.trim())
     if(parsed.hasOwnProperty("value"))
-      return parsed.value
+      return this.opts.export.postprocess(parsed.value)
     console.error(s.trim())
     console.error(parsed)
     throw new Error("Parsing was failed.")
@@ -394,7 +397,8 @@ export const asHTML: ExportType<string> = {
     args  ? " " + Object.keys(args).map(x => `${x}="${args[x]}"`).join(" ") : "",
     children ? ">" + children + "</" + tag + ">" : " />"
   ].join(""),
-  join: x => x.join("")
+  join: x => x.join(""),
+  postprocess: x => x
 }
 
 export const asAST: ExportType<any> = {
@@ -403,7 +407,10 @@ export const asAST: ExportType<any> = {
     args ? args : null,
     children
   ],
-  join: x => x // identical
+  join: x => x, // identical
+  postprocess: (obj: Array<any>) => {
+    return obj.filter(x => (x !== ''))
+  }
 }
 
 const p = new Parser<any>({
