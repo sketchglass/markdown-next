@@ -409,10 +409,7 @@ export const asAST: ExportType<any> = {
   ],
   join: x => x, // identical
   postprocess: (obj: Array<any>) => {
-    return obj.filter(x => {
-      if(x !== '') return true
-      return false
-    })
+    return obj.filter(x => (x !== ''))
   }
 }
 
