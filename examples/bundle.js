@@ -154,7 +154,10 @@
 	            .then(plainStr)
 	            .map(mapper("code"))
 	            .skip(codeEnd);
-	        var inline = P.alt(anchor, img, em, strong, code, P.regexp(/[^\r\n=-\[\]\*\`]+/), P.regexp(/./));
+	        var pluginInline = P.seqMap(P.string("@["), P.regexp(/[a-zA-Z]+/), P.regexp(/:{0,1}([^\]]*)/, 1), P.string("]"), function (_1, pluginName, args, _2) {
+	            return _this.opts.plugins && _this.opts.plugins[pluginName] ? _this.opts.plugins[pluginName](args, null) : join([_1, pluginName, args, _2]);
+	        });
+	        var inline = P.alt(pluginInline, anchor, img, em, strong, code, P.regexp(/[^\r\n=-\[\]\*\`\@]+/), P.regexp(/./));
 	        var tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/);
 	        var tableInline = tdStr;
 	        var tableStart = P.string("| ");
@@ -294,8 +297,11 @@
 	                return x.reduce(function (a, b) { return join([a, mapper("br")(null), b]); });
 	            }).map(mapper("p")).map(mapper("blockquote")).skip(whitespace.many());
 	        });
-	        var block = P.alt(P.regexp(/\s+/).result(""), lists, h1Special, h2Special, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraph);
-	        this.acceptables = P.alt(block).many().map(join).or(linebreak.result(""));
+	        var pluginBlock = P.seqMap(P.string("@["), P.regexp(/[a-zA-Z]+/), P.regexp(/(:[^\]]*)*/), P.string("]\n"), P.seq(P.string("  ").result(""), P.regexp(/[^\r\n]+/), linebreak.atMost(1).result("\n")).map(join).atLeast(1).map(join), function (_1, pluginName, args, _2, content) {
+	            return _this.opts.plugins && _this.opts.plugins[pluginName] ? _this.opts.plugins[pluginName](args, content) : join([_1, pluginName, args, _2, content]);
+	        });
+	        var block = P.alt(P.regexp(/\s+/).result(""), pluginBlock, lists, h1Special, h2Special, h6, h5, h4, h3, h2, h1, table, codeBlock, blockquote, paragraph, linebreak.result(""));
+	        this.acceptables = P.alt(block).many().map(join);
 	    };
 	    Parser.prototype.parse = function (s) {
 	        this.liLevelBefore = this.liLevel = null;
@@ -307,7 +313,7 @@
 	        };
 	        var parsed = this.acceptables.parse(s.trim());
 	        if (parsed.hasOwnProperty("value"))
-	            return parsed.value;
+	            return this.opts.export.postprocess(parsed.value);
 	        console.error(s.trim());
 	        console.error(parsed);
 	        throw new Error("Parsing was failed.");
@@ -321,7 +327,8 @@
 	        args ? " " + Object.keys(args).map(function (x) { return x + "=\"" + args[x] + "\""; }).join(" ") : "",
 	        children ? ">" + children + "</" + tag + ">" : " />"
 	    ].join(""); }; },
-	    join: function (x) { return x.join(""); }
+	    join: function (x) { return x.join(""); },
+	    postprocess: function (x) { return x; }
 	};
 	exports.asAST = {
 	    mapper: function (tag, args) { return function (children) { return [
@@ -329,7 +336,10 @@
 	        args ? args : null,
 	        children
 	    ]; }; },
-	    join: function (x) { return x; } // identical
+	    join: function (x) { return x; },
+	    postprocess: function (obj) {
+	        return obj.filter(function (x) { return (x !== ''); });
+	    }
 	};
 	var p = new Parser({
 	    export: exports.asHTML,

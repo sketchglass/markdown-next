@@ -15,6 +15,9 @@ interface ListTree {
 }
 
 export
+type Plugin<T> = (args: string, content: any, mapper: Mapper<T>, join: Function) => string
+
+export
 type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T
 
 export
@@ -43,6 +46,7 @@ class Parser<T> {
   acceptables: P.Parser<T>
   constructor(public opts: {
     export: ExportType<T>
+    plugins?: {[pluginName: string]: Plugin<T>}
   }) {
     this.create()
   }
@@ -162,13 +166,25 @@ class Parser<T> {
       .map(mapper("code"))
       .skip(codeEnd)
 
+    const pluginInline = P.seqMap(
+      P.string("@["),
+      P.regexp(/[a-zA-Z]+/),
+      P.regexp(/:{0,1}([^\]]*)/, 1),
+      P.string("]"),
+      (_1, pluginName, args, _2) => {
+        return this.opts.plugins && this.opts.plugins[pluginName] ?
+          this.opts.plugins[pluginName](args, null, mapper, join) : join([_1, pluginName, args, _2])
+      }
+    )
+
     const inline = P.alt(
+        pluginInline,
         anchor,
         img,
         em,
         strong,
         code,
-        P.regexp(/[^\r\n=-\[\]\*\`]+/),
+        P.regexp(/[^\r\n=-\[\]\*\`\@]+/),
         P.regexp(/./),
       )
     const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
@@ -352,8 +368,24 @@ class Parser<T> {
       ).map(mapper("p")).map(mapper("blockquote")).skip(whitespace.many())
     })
 
+    const pluginBlock = P.seqMap(
+      P.string("@["),
+      P.regexp(/[a-zA-Z]+/),
+      P.regexp(/(:[^\]]*)*/),
+      P.string("]\n"),
+      P.seq(
+        P.string("  ").result(""),
+        P.regexp(/[^\r\n]+/),
+        linebreak.atMost(1).result("\n"),
+      ).map(join).atLeast(1).map(join),
+      (_1, pluginName, args, _2, content) => {
+        return this.opts.plugins && this.opts.plugins[pluginName] ? this.opts.plugins[pluginName](args, content, mapper, join)
+          : join([_1, pluginName, args, _2, content])
+      }
+    )
     const block = P.alt(
       P.regexp(/\s+/).result(""),
+      pluginBlock,
       lists,
       h1Special,
       h2Special,
