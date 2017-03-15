@@ -15,7 +15,7 @@ interface ListTree {
 }
 
 export
-type Plugin = (args: string, content: any) => string
+type Plugin<T> = (args: string, content: any, mapper: Mapper<T>, join: Function) => string
 
 export
 type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T
@@ -46,7 +46,7 @@ class Parser<T> {
   acceptables: P.Parser<T>
   constructor(public opts: {
     export: ExportType<T>
-    plugins?: {[pluginName: string]: Plugin}
+    plugins?: {[pluginName: string]: Plugin<T>}
   }) {
     this.create()
   }
@@ -172,7 +172,8 @@ class Parser<T> {
       P.regexp(/:{0,1}([^\]]*)/, 1),
       P.string("]"),
       (_1, pluginName, args, _2) => {
-        return this.opts.plugins && this.opts.plugins[pluginName] ? this.opts.plugins[pluginName](args, null) : join([_1, pluginName, args, _2])
+        return this.opts.plugins && this.opts.plugins[pluginName] ?
+          this.opts.plugins[pluginName](args, null, mapper, join) : join([_1, pluginName, args, _2])
       }
     )
 
@@ -378,7 +379,8 @@ class Parser<T> {
         linebreak.atMost(1).result("\n"),
       ).map(join).atLeast(1).map(join),
       (_1, pluginName, args, _2, content) => {
-        return this.opts.plugins && this.opts.plugins[pluginName] ? this.opts.plugins[pluginName](args, content) : join([_1, pluginName, args, _2, content])
+        return this.opts.plugins && this.opts.plugins[pluginName] ? this.opts.plugins[pluginName](args, content, mapper, join)
+          : join([_1, pluginName, args, _2, content])
       }
     )
     const block = P.alt(

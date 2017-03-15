@@ -437,4 +437,25 @@ code block
 
     })
   })
+  describe('Extention', () => {
+    it('can be extended by user', () => {
+      const plugins = {
+        'extention': (args: string, content: string, mapper: Function, join: Function) => {
+          return mapper('extention', null)(content.trim())
+        }
+      }
+      const parser = new Parser({
+        export: asHTML,
+        plugins
+      })
+      const input = `
+      @[extention]
+        user value
+ `
+      const expect = `<extention>user value</extention>`
+
+      assert.equal(parser.parse(input), expect)
+
+    })
+  })
 })

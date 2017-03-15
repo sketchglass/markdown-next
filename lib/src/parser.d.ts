@@ -6,7 +6,7 @@ export interface ListTree {
     value: string | null;
     parent: ListTree | null;
 }
-export declare type Plugin = (args: string, content: any) => string;
+export declare type Plugin<T> = (args: string, content: any, mapper: Mapper<T>, join: Function) => string;
 export declare type Mapper<T> = (tagName: string, attributes?: any) => (children: string | T | null) => T;
 export interface ExportType<T> {
     mapper: Mapper<T>;
@@ -17,7 +17,7 @@ export declare class Parser<T> {
     opts: {
         export: ExportType<T>;
         plugins?: {
-            [pluginName: string]: Plugin;
+            [pluginName: string]: Plugin<T>;
         };
     };
     liLevelBefore: number | null;
@@ -28,7 +28,7 @@ export declare class Parser<T> {
     constructor(opts: {
         export: ExportType<T>;
         plugins?: {
-            [pluginName: string]: Plugin;
+            [pluginName: string]: Plugin<T>;
         };
     });
     create(): void;
