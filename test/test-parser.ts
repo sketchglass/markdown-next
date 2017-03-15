@@ -408,5 +408,33 @@ code block
       ]]]
       assert.deepEqual(parser.parse(input), expect)
     })
+    it('should treat continuous input as single string', () => {
+      const parser = new Parser({
+        export: asAST
+      })
+      const input = `
+  paragraph1
+
+  paragraph2
+  `
+      const expect = [["p", null, ["paragraph1"]], ["p", null, ["paragraph2"]]]
+      assert.deepEqual(parser.parse(input), expect)
+
+    })
+    it('should treat nested structures', () => {
+      const parser = new Parser({
+        export: asAST
+      })
+      const input = `
+  para **b** graph
+  `
+      const expect = [["p", null, [
+        "para ",
+        ["strong", null, 'b'],
+        " graph",
+      ]]]
+      assert.deepEqual(parser.parse(input), expect)
+
+    })
   })
 })

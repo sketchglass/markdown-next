@@ -62,6 +62,7 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
+	Object.defineProperty(exports, "__esModule", { value: true });
 	var P = __webpack_require__(2);
 	var Parser = (function () {
 	    function Parser(opts) {
@@ -194,37 +195,39 @@
 	            // detect which types of content
 	            nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol";
 	        }).then(liSingleLine).skip(linebreak.atMost(1)).map(function (x) {
-	            if (liLevelBefore == liLevel) {
-	                _this.currentTree.children.push({
-	                    value: x,
-	                    children: [],
-	                    type: nodeType,
-	                    parent: _this.currentTree
-	                });
-	            }
-	            else if (liLevelBefore < liLevel) {
-	                var currentTreeIndex = _this.currentTree.children.length - 1;
-	                _this.currentTree = _this.currentTree.children[currentTreeIndex];
-	                _this.currentTree.children.push({
-	                    children: [],
-	                    type: nodeType,
-	                    parent: _this.currentTree,
-	                    value: x
-	                });
-	            }
-	            else if (liLevelBefore > liLevel) {
-	                var unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length;
-	                for (var i = 0; i < unindetationStep; i++) {
-	                    if (_this.currentTree.parent !== null) {
-	                        _this.currentTree = _this.currentTree.parent;
-	                    }
+	            if (liLevel !== null && liLevelBefore !== null) {
+	                if (liLevelBefore == liLevel) {
+	                    _this.currentTree.children.push({
+	                        value: x,
+	                        children: [],
+	                        type: nodeType,
+	                        parent: _this.currentTree
+	                    });
 	                }
-	                _this.currentTree.children.push({
-	                    type: nodeType,
-	                    children: [],
-	                    parent: _this.currentTree,
-	                    value: x
-	                });
+	                else if (liLevelBefore < liLevel) {
+	                    var currentTreeIndex = _this.currentTree.children.length - 1;
+	                    _this.currentTree = _this.currentTree.children[currentTreeIndex];
+	                    _this.currentTree.children.push({
+	                        children: [],
+	                        type: nodeType,
+	                        parent: _this.currentTree,
+	                        value: x
+	                    });
+	                }
+	                else if (liLevelBefore > liLevel) {
+	                    var unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length;
+	                    for (var i = 0; i < unindetationStep; i++) {
+	                        if (_this.currentTree.parent !== null) {
+	                            _this.currentTree = _this.currentTree.parent;
+	                        }
+	                    }
+	                    _this.currentTree.children.push({
+	                        type: nodeType,
+	                        children: [],
+	                        parent: _this.currentTree,
+	                        value: x
+	                    });
+	                }
 	            }
 	            var _nodeType = nodeType;
 	            return _nodeType;
@@ -310,7 +313,7 @@
 	        };
 	        var parsed = this.acceptables.parse(s.trim());
 	        if (parsed.hasOwnProperty("value"))
-	            return parsed.value;
+	            return this.opts.export.postprocess(parsed.value);
 	        console.error(s.trim());
 	        console.error(parsed);
 	        throw new Error("Parsing was failed.");
@@ -321,10 +324,11 @@
 	exports.asHTML = {
 	    mapper: function (tag, args) { return function (children) { return [
 	        "<" + tag,
-	        args ? " " + Object.keys(args).map(function (x) { return (x + "=\"" + args[x] + "\""); }).join(" ") : "",
+	        args ? " " + Object.keys(args).map(function (x) { return x + "=\"" + args[x] + "\""; }).join(" ") : "",
 	        children ? ">" + children + "</" + tag + ">" : " />"
 	    ].join(""); }; },
-	    join: function (x) { return x.join(""); }
+	    join: function (x) { return x.join(""); },
+	    postprocess: function (x) { return x; }
 	};
 	exports.asAST = {
 	    mapper: function (tag, args) { return function (children) { return [
@@ -332,7 +336,10 @@
 	        args ? args : null,
 	        children
 	    ]; }; },
-	    join: function (x) { return x; } // identical
+	    join: function (x) { return x; },
+	    postprocess: function (obj) {
+	        return obj.filter(function (x) { return (x !== ''); });
+	    }
 	};
 	var p = new Parser({
 	    export: exports.asHTML,
@@ -346,7 +353,7 @@
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function(t,n){if(true){!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (n), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))}else if(typeof module==="object"&&module.exports){module.exports=n()}else{t.Parsimmon=n()}})(this,function(){"use strict";function t(n){if(!(this instanceof t)){return new t(n)}this._=n}function n(n){return n instanceof t}var r=t.prototype;function e(t,n){return{status:true,index:t,value:n,furthest:-1,expected:[]}}function u(t,n){return{status:false,index:-1,value:null,furthest:t,expected:[n]}}function a(t,n){if(!n){return t}if(t.furthest>n.furthest){return t}var r=t.furthest===n.furthest?i(t.expected,n.expected):n.expected;return{status:t.status,index:t.index,value:t.value,furthest:n.furthest,expected:r}}function i(t,n){var r=t.length;var e=n.length;if(r===0){return n}else if(e===0){return t}var u={};for(var a=0;a<r;a++){u[t[a]]=true}for(var i=0;i<e;i++){u[n[i]]=true}var f=[];for(var o in u){if(u.hasOwnProperty(o)){f.push(o)}}f.sort();return f}function f(t){if(!n(t)){throw new Error("not a parser: "+t)}}function o(t){if(typeof t!=="number"){throw new Error("not a number: "+t)}}function s(t){if(!(t instanceof RegExp)){throw new Error("not a regexp: "+t)}var n=_(t);for(var r=0;r<n.length;r++){var e=n.charAt(r);if(e!="i"&&e!="m"&&e!="u"){throw new Error('unsupported regexp flag "'+e+'": '+t)}}}function c(t){if(typeof t!=="function"){throw new Error("not a function: "+t)}}function l(t){if(typeof t!=="string"){throw new Error("not a string: "+t)}}function h(t){if(t.length===1){return t[0]}return"one of "+t.join(", ")}function v(t,n){var r=n.index;var e=r.offset;if(e===t.length){return", got the end of the input"}var u=e>0?"'...":"'";var a=t.length-e>12?"...'":"'";return" at line "+r.line+" column "+r.column+", got "+u+t.slice(e,e+12)+a}function p(t,n){return"expected "+h(n.expected)+v(t,n)}r.parse=function(t){if(typeof t!=="string"){throw new Error(".parse must be called with a string as its argument")}var n=this.skip(z)._(t,0);return n.status?{status:true,value:n.value}:{status:false,index:R(t,n.furthest),expected:n.expected}};r.tryParse=function(t){var n=this.parse(t);if(n.status){return n.value}else{var r=p(t,n);var e=new Error(r);e.type="ParsimmonError";e.result=n;throw e}};function d(){var n=[].slice.call(arguments);var r=n.length;for(var u=0;u<r;u+=1){f(n[u])}return t(function(t,u){var i;var f=new Array(r);for(var o=0;o<r;o+=1){i=a(n[o]._(t,u),i);if(!i.status){return i}f[o]=i.value;u=i.index}return a(e(u,f),i)})}function g(){var t=[].slice.call(arguments);if(t.length===0){throw new Error("seqMap needs at least one argument")}var n=t.pop();c(n);return d.apply(null,t).map(function(t){return n.apply(null,t)})}function m(n){return t(n(e,u))}function y(){var n=[].slice.call(arguments);var r=n.length;if(r===0){return b("zero alternates")}for(var e=0;e<r;e+=1){f(n[e])}return t(function(t,r){var e;for(var u=0;u<n.length;u+=1){e=a(n[u]._(t,r),e);if(e.status)return e}return e})}function x(t,n){return w(t,n).or(O([]))}function w(t,n){f(t);f(n);var r=n.then(t).many();return t.chain(function(t){return r.map(function(n){return[t].concat(n)})})}r.or=function(t){return y(this,t)};r.then=function(t){if(typeof t==="function"){throw new Error("chaining features of .then are no longer supported, use .chain instead")}f(t);return d(this,t).map(function(t){return t[1]})};r.many=function(){var n=this;return t(function(t,r){var u=[];var i=undefined;for(;;){i=a(n._(t,r),i);if(i.status){r=i.index;u.push(i.value)}else{return a(e(r,u),i)}}})};r.times=function(n,r){var u=this;if(arguments.length<2){r=n}o(n);o(r);return t(function(t,i){var f=[];var o=undefined;var s=undefined;for(var c=0;c<n;c+=1){o=u._(t,i);s=a(o,s);if(o.status){i=o.index;f.push(o.value)}else{return s}}for(;c<r;c+=1){o=u._(t,i);s=a(o,s);if(o.status){i=o.index;f.push(o.value)}else{break}}return a(e(i,f),s)})};r.result=function(t){return this.map(function(){return t})};r.atMost=function(t){return this.times(0,t)};r.atLeast=function(t){return g(this.times(t),this.many(),function(t,n){return t.concat(n)})};r.map=function(n){c(n);var r=this;return t(function(t,u){var i=r._(t,u);if(!i.status){return i}return a(e(i.index,n(i.value)),i)})};r["fantasy-land/map"]=r.map;r.skip=function(t){return d(this,t).map(function(t){return t[0]})};r.mark=function(){return g(W,this,W,function(t,n,r){return{start:t,value:n,end:r}})};r.desc=function(n){var r=this;return t(function(t,e){var u=r._(t,e);if(!u.status){u.expected=[n]}return u})};r.fallback=function(t){return this.or(O(t))};function E(n){l(n);var r="'"+n+"'";return t(function(t,a){var i=a+n.length;var f=t.slice(a,i);if(f===n){return e(i,f)}else{return u(a,r)}})}function _(t){var n=""+t;return n.slice(n.lastIndexOf("/")+1)}function k(n,r){s(n);if(arguments.length>=2){o(r)}else{r=0}var a=RegExp("^(?:"+n.source+")",_(n));var i=""+n;return t(function(t,n){var f=a.exec(t.slice(n));if(f){var o=f[0];var s=f[r];if(s!=null){return e(n+o.length,s)}}return u(n,i)})}function O(n){return t(function(t,r){return e(r,n)})}function b(n){return t(function(t,r){return u(r,n)})}var P=t(function(t,n){if(n>=t.length){return u(n,"any character")}return e(n+1,t.charAt(n))});var A=t(function(t,n){return e(t.length,t.slice(n))});var z=t(function(t,n){if(n<t.length){return u(n,"EOF")}return e(n,null)});function q(n){c(n);return t(function(t,r){var a=t.charAt(r);if(r<t.length&&n(a)){return e(r+1,a)}else{return u(r,"a character matching "+n)}})}function M(t){return q(function(n){return t.indexOf(n)>=0})}function j(t){return q(function(n){return t.indexOf(n)<0})}function B(n){c(n);return t(function(t,r){var u=r;while(u<t.length&&n(t.charAt(u))){u++}return e(u,t.slice(r,u))})}function F(n,r){if(arguments.length<2){r=n;n=undefined}var e=t(function(t,n){e._=r()._;return e._(t,n)});if(n){return e.desc(n)}else{return e}}function R(t,n){var r=t.slice(0,n).split("\n");var e=r.length;var u=r[r.length-1].length+1;return{offset:n,line:e,column:u}}var W=t(function(t,n){return e(n,R(t,n))});function I(){return b("fantasy-land/empty")}r.concat=r.or;r["fantasy-land/concat"]=r.concat;r.empty=I;r["fantasy-land/empty"]=r.empty;r.of=O;r["fantasy-land/of"]=r.of;r.ap=function(t){return g(t,this,function(t,n){return t(n)})};r["fantasy-land/ap"]=r.ap;r.chain=function(n){var r=this;return t(function(t,e){var u=r._(t,e);if(!u.status){return u}var i=n(u.value);return a(i._(t,u.index),u)})};r["fantasy-land/chain"]=r.chain;var L=k(/[0-9]/).desc("a digit");var S=k(/[0-9]*/).desc("optional digits");var C=k(/[a-z]/i).desc("a letter");var D=k(/[a-z]*/i).desc("optional letters");var G=k(/\s*/).desc("optional whitespace");var H=k(/\s+/).desc("whitespace");t.all=A;t.alt=y;t.any=P;t.custom=m;t.digit=L;t.digits=S;t.eof=z;t.fail=b;t.formatError=p;t.index=W;t.isParser=n;t.lazy=F;t.letter=C;t.letters=D;t.makeFailure=u;t.makeSuccess=e;t.noneOf=j;t.oneOf=M;t.optWhitespace=G;t.Parser=t;t.regex=k;t.regexp=k;t.sepBy=x;t.sepBy1=w;t.seq=d;t.seqMap=g;t.string=E;t.succeed=O;t.takeWhile=B;t.test=q;t.whitespace=H;t.empty=I;t["fantasy-land/empty"]=I;t.of=O;t["fantasy-land/of"]=O;return t});
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;(function(n,t){if(true){!(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (t), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__))}else if(typeof module==="object"&&module.exports){module.exports=t()}else{n.Parsimmon=t()}})(this,function(){"use strict";function n(t){if(!(this instanceof n)){return new n(t)}this._=t}function t(t){return t instanceof n}var r=n.prototype;function e(n,t){return{status:true,index:n,value:t,furthest:-1,expected:[]}}function u(n,t){return{status:false,index:-1,value:null,furthest:n,expected:[t]}}function a(n,t){if(!t){return n}if(n.furthest>t.furthest){return n}var r=n.furthest===t.furthest?i(n.expected,t.expected):t.expected;return{status:n.status,index:n.index,value:n.value,furthest:t.furthest,expected:r}}function i(n,t){var r=n.length;var e=t.length;if(r===0){return t}else if(e===0){return n}var u={};for(var a=0;a<r;a++){u[n[a]]=true}for(var i=0;i<e;i++){u[t[i]]=true}var o=[];for(var f in u){if(u.hasOwnProperty(f)){o.push(f)}}o.sort();return o}function o(n){if(!t(n)){throw new Error("not a parser: "+n)}}function f(n){if(typeof n!=="number"){throw new Error("not a number: "+n)}}function s(n){if(!(n instanceof RegExp)){throw new Error("not a regexp: "+n)}var t=_(n);for(var r=0;r<t.length;r++){var e=t.charAt(r);if(e!="i"&&e!="m"&&e!="u"){throw new Error('unsupported regexp flag "'+e+'": '+n)}}}function c(n){if(typeof n!=="function"){throw new Error("not a function: "+n)}}function l(n){if(typeof n!=="string"){throw new Error("not a string: "+n)}}function h(n){if(n.length===1){return n[0]}return"one of "+n.join(", ")}function v(n,t){var r=t.index;var e=r.offset;if(e===n.length){return", got the end of the input"}var u=e>0?"'...":"'";var a=n.length-e>12?"...'":"'";return" at line "+r.line+" column "+r.column+", got "+u+n.slice(e,e+12)+a}function p(n,t){return"expected "+h(t.expected)+v(n,t)}r.parse=function(n){if(typeof n!=="string"){throw new Error(".parse must be called with a string as its argument")}var t=this.skip(M)._(n,0);return t.status?{status:true,value:t.value}:{status:false,index:I(n,t.furthest),expected:t.expected}};r.tryParse=function(n){var t=this.parse(n);if(t.status){return t.value}else{var r=p(n,t);var e=new Error(r);e.type="ParsimmonError";e.result=t;throw e}};function d(){var t=[].slice.call(arguments);var r=t.length;for(var u=0;u<r;u+=1){o(t[u])}return n(function(n,u){var i;var o=new Array(r);for(var f=0;f<r;f+=1){i=a(t[f]._(n,u),i);if(!i.status){return i}o[f]=i.value;u=i.index}return a(e(u,o),i)})}function g(){var n=[].slice.call(arguments);if(n.length===0){throw new Error("seqMap needs at least one argument")}var t=n.pop();c(t);return d.apply(null,n).map(function(n){return t.apply(null,n)})}function m(t){return n(t(e,u))}function x(){var t=[].slice.call(arguments);var r=t.length;if(r===0){return P("zero alternates")}for(var e=0;e<r;e+=1){o(t[e])}return n(function(n,r){var e;for(var u=0;u<t.length;u+=1){e=a(t[u]._(n,r),e);if(e.status)return e}return e})}function y(n,t){return w(n,t).or(b([]))}function w(n,t){o(n);o(t);var r=t.then(n).many();return n.chain(function(n){return r.map(function(t){return[n].concat(t)})})}r.or=function(n){return x(this,n)};r.then=function(n){if(typeof n==="function"){throw new Error("chaining features of .then are no longer supported, use .chain instead")}o(n);return d(this,n).map(function(n){return n[1]})};r.many=function(){var t=this;return n(function(n,r){var u=[];var i=undefined;for(;;){i=a(t._(n,r),i);if(i.status){r=i.index;u.push(i.value)}else{return a(e(r,u),i)}}})};r.times=function(t,r){var u=this;if(arguments.length<2){r=t}f(t);f(r);return n(function(n,i){var o=[];var f=undefined;var s=undefined;for(var c=0;c<t;c+=1){f=u._(n,i);s=a(f,s);if(f.status){i=f.index;o.push(f.value)}else{return s}}for(;c<r;c+=1){f=u._(n,i);s=a(f,s);if(f.status){i=f.index;o.push(f.value)}else{break}}return a(e(i,o),s)})};r.result=function(n){return this.map(function(){return n})};r.atMost=function(n){return this.times(0,n)};r.atLeast=function(n){return g(this.times(n),this.many(),function(n,t){return n.concat(t)})};r.map=function(t){c(t);var r=this;return n(function(n,u){var i=r._(n,u);if(!i.status){return i}return a(e(i.index,t(i.value)),i)})};r["fantasy-land/map"]=r.map;r.skip=function(n){return d(this,n).map(function(n){return n[0]})};r.mark=function(){return g(L,this,L,function(n,t,r){return{start:n,value:t,end:r}})};r.lookahead=function(n){return this.skip(A(n))};r.desc=function(t){var r=this;return n(function(n,e){var u=r._(n,e);if(!u.status){u.expected=[t]}return u})};r.fallback=function(n){return this.or(b(n))};function E(t){l(t);var r="'"+t+"'";return n(function(n,a){var i=a+t.length;var o=n.slice(a,i);if(o===t){return e(i,o)}else{return u(a,r)}})}function _(n){var t=""+n;return t.slice(t.lastIndexOf("/")+1)}function k(n){return RegExp("^(?:"+n.source+")",_(n))}function O(t,r){s(t);if(arguments.length>=2){f(r)}else{r=0}var a=k(t);var i=""+t;return n(function(n,t){var o=a.exec(n.slice(t));if(o){var f=o[0];var s=o[r];if(s!=null){return e(t+f.length,s)}}return u(t,i)})}function b(t){return n(function(n,r){return e(r,t)})}function P(t){return n(function(n,r){return u(r,t)})}function A(r){if(t(r)){return n(function(n,t){var e=r._(n,t);e.index=t;e.value="";return e})}else if(typeof r==="string"){return A(E(r))}else if(r instanceof RegExp){return A(O(r))}throw new Error("not a string, regexp, or parser: "+r)}var z=n(function(n,t){if(t>=n.length){return u(t,"any character")}return e(t+1,n.charAt(t))});var q=n(function(n,t){return e(n.length,n.slice(t))});var M=n(function(n,t){if(t<n.length){return u(t,"EOF")}return e(t,null)});function R(t){c(t);return n(function(n,r){var a=n.charAt(r);if(r<n.length&&t(a)){return e(r+1,a)}else{return u(r,"a character matching "+t)}})}function j(n){return R(function(t){return n.indexOf(t)>=0})}function B(n){return R(function(t){return n.indexOf(t)<0})}function F(t){c(t);return n(function(n,r){var u=r;while(u<n.length&&t(n.charAt(u))){u++}return e(u,n.slice(r,u))})}function W(t,r){if(arguments.length<2){r=t;t=undefined}var e=n(function(n,t){e._=r()._;return e._(n,t)});if(t){return e.desc(t)}else{return e}}function I(n,t){var r=n.slice(0,t).split("\n");var e=r.length;var u=r[r.length-1].length+1;return{offset:t,line:e,column:u}}var L=n(function(n,t){return e(t,I(n,t))});function S(){return P("fantasy-land/empty")}r.concat=r.or;r["fantasy-land/concat"]=r.concat;r.empty=S;r["fantasy-land/empty"]=r.empty;r.of=b;r["fantasy-land/of"]=r.of;r.ap=function(n){return g(n,this,function(n,t){return n(t)})};r["fantasy-land/ap"]=r.ap;r.chain=function(t){var r=this;return n(function(n,e){var u=r._(n,e);if(!u.status){return u}var i=t(u.value);return a(i._(n,u.index),u)})};r["fantasy-land/chain"]=r.chain;var C=O(/[0-9]/).desc("a digit");var D=O(/[0-9]*/).desc("optional digits");var G=O(/[a-z]/i).desc("a letter");var H=O(/[a-z]*/i).desc("optional letters");var J=O(/\s*/).desc("optional whitespace");var K=O(/\s+/).desc("whitespace");n.all=q;n.alt=x;n.any=z;n.custom=m;n.digit=C;n.digits=D;n.eof=M;n.fail=P;n.formatError=p;n.index=L;n.isParser=t;n.lazy=W;n.letter=G;n.letters=H;n.lookahead=A;n.makeFailure=u;n.makeSuccess=e;n.noneOf=B;n.oneOf=j;n.optWhitespace=J;n.Parser=n;n.regex=O;n.regexp=O;n.sepBy=y;n.sepBy1=w;n.seq=d;n.seqMap=g;n.string=E;n.succeed=b;n.takeWhile=F;n.test=R;n.whitespace=K;n.empty=S;n["fantasy-land/empty"]=S;n.of=b;n["fantasy-land/of"]=b;return n});
 
 
 /***/ }
