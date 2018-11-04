@@ -415,7 +415,7 @@ class Parser<T> {
       parent: null
     }
     const parsed = this.acceptables.parse(s.trim())
-    if(parsed.hasOwnProperty("value"))
+    if(parsed.status === true && parsed.hasOwnProperty("value"))
       return this.opts.export.postprocess(parsed.value)
     console.error(s.trim())
     console.error(parsed)
