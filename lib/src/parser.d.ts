@@ -1,4 +1,3 @@
-/// <reference types="parsimmon" />
 import P = require("parsimmon");
 export interface ListTree {
     type: "ul" | "ol" | "shadow";

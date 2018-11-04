@@ -14,13 +14,13 @@
     "lib/src/"
   ],
   "devDependencies": {
-    "@types/mocha": "^2.2.32",
-    "@types/parsimmon": "^0.9.30",
+    "@types/mocha": "^5.2.5",
+    "@types/parsimmon": "^1.10.0",
     "@types/power-assert": "^1.4.29",
-    "mocha": "^3.1.2",
+    "mocha": "^5.2.0",
     "power-assert": "^1.4.1",
-    "typescript": "^2.0.3",
-    "webpack": "^1.13.3"
+    "typescript": "^3.1.6",
+    "webpack": "^4.24.0"
   },
   "dependencies": {
     "parsimmon": "^1.0.0"
@@ -33,5 +33,5 @@
     "url": "https://github.com/sketchglass/markdown-next/issues"
   },
   "homepage": "https://github.com/sketchglass/markdown-next#readme",
-  "version": "0.0.2"
+  "version": "0.1.0"
 }
