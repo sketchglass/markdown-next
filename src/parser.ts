@@ -1,5 +1,4 @@
 import P = require("parsimmon")
-import * as util from "util"
 
 interface IndexType {
   offset: number
@@ -348,19 +347,20 @@ class Parser<T> {
       parent?: IBlockquoteVertex
     }
     
-    const _blockquote = (x: {text: string, blockquoteLevel: number}[]) => {
+    const createBlockquoteTree = (x: {text: string, blockquoteLevel: number}[]) => {
       let depth = 0
-      // const example = ["a", "b", ["c", ["d"], "e"]]
-      // [["hoge", 1] ["fuga", 2], ["piyo", 3]]
       let root: IBlockquoteVertex = {text: null, children: []}
       let currentNode = root
       for (const o of x) {
         if (o.blockquoteLevel < depth) {
-          if (currentNode.parent) {
-            let node = {text: o.text, children: [], parent: currentNode.parent}
-            currentNode.parent.children.push(node)
-            currentNode = node
+          let node = {text: o.text, children: [], parent: currentNode.parent}
+          for (let i = 0; i < depth - o.blockquoteLevel; i++) {
+            if (currentNode.parent) {
+              currentNode = currentNode.parent
+            }
           }
+          currentNode.children.push(node)
+          currentNode = node
           depth = o.blockquoteLevel
         } else if (o.blockquoteLevel > depth) {
           let node = {text: o.text, children: [], parent: currentNode}
@@ -374,11 +374,25 @@ class Parser<T> {
           currentNode.children.push(node)
         }
       }
-      console.log(util.inspect(root, false, 10, true))      
+      return root      
+    }
+    const parseBlockquoteTree = (tree: IBlockquoteVertex, isRoot = false) => {
+      let result: any[] = []
+      for (const v of tree.children) {
+        if (v.text !== null) {
+          result.push(v.text)
+        } else if (v.children.length !== 0) {
+          result.push(parseBlockquoteTree(v))
+        }
+      }
+      const _result = isRoot ? 
+        mapper("blockquote")(mapper("p")(result.reduce((a, b) => join([a, mapper("br")(null), b]))))  
+        : mapper("blockquote")(result.reduce((a, b) => join([a, mapper("br")(null), b])))
+      return _result
     }
     const blockquote = P.lazy(() => {
       return blockquoteLine.atLeast(1).map(x => {
-        return _blockquote(x)
+        return parseBlockquoteTree(createBlockquoteTree(x), true)
       }).skip(whitespace.many())
     })
     const pluginBlock = P.seqMap(
