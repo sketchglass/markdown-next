@@ -329,45 +329,72 @@ class Parser<T> {
 
     const blockquoteStr = P.regexp(/[^\r\n]+/)
     const blockquoteBegin = P.string("> ")
-    let blockquoteLevel: number | null = null
-    let createBlockquote = false
-
+    
     const blockquoteLine = P.lazy(() => {
+      let blockquoteLevel: number = 0
       return P.seqMap(
-        P.seqMap(
-          blockquoteBegin.atLeast(1),
-          P.index,
-          (_1, index) => {
-            const _index = index as any as IndexType
-            if (blockquoteLevel === null) {
-              blockquoteLevel = _index.column
-              return
-            }
-            if (blockquoteLevel < _index.column) {
-              createBlockquote = true
-            } else {
-              createBlockquote = false
-            }
-            blockquoteLevel = _index.column
-          }
-        ),
+        blockquoteBegin.then(blockquoteBegin.many().map(x => blockquoteLevel = x.length)),
         blockquoteStr,
         linebreak.atMost(1),
-        (_1, s, _2) => {
-          if (createBlockquote)
-            return mapper("blockquote")(s)
-          return s
+        (_1, text, _2) => {
+          return {text, blockquoteLevel}
         }
       )
     })
+    interface IBlockquoteVertex {
+      text: string | null
+      children: IBlockquoteVertex[]
+      parent?: IBlockquoteVertex
+    }
+    
+    const createBlockquoteTree = (x: {text: string, blockquoteLevel: number}[]) => {
+      let depth = 0
+      let root: IBlockquoteVertex = {text: null, children: []}
+      let currentNode = root
+      for (const o of x) {
+        if (o.blockquoteLevel < depth) {
+          let node = {text: o.text, children: [], parent: currentNode.parent}
+          for (let i = 0; i < depth - o.blockquoteLevel; i++) {
+            if (currentNode.parent) {
+              currentNode = currentNode.parent
+            }
+          }
+          currentNode.children.push(node)
+          currentNode = node
+          depth = o.blockquoteLevel
+        } else if (o.blockquoteLevel > depth) {
+          let node = {text: o.text, children: [], parent: currentNode}
+          let shadowNode = {text: null, children: [node], parent: currentNode}
+          node.parent = shadowNode
+          currentNode.children.push(shadowNode)
+          currentNode = shadowNode
+          depth = o.blockquoteLevel
+        } else {
+          let node = {text: o.text, children: [], parent: currentNode}
+          currentNode.children.push(node)
+        }
+      }
+      return root      
+    }
+    const parseBlockquoteTree = (tree: IBlockquoteVertex, isRoot = false) => {
+      let result: any[] = []
+      for (const v of tree.children) {
+        if (v.text !== null) {
+          result.push(v.text)
+        } else if (v.children.length !== 0) {
+          result.push(parseBlockquoteTree(v))
+        }
+      }
+      const _result = isRoot ? 
+        mapper("blockquote")(mapper("p")(result.reduce((a, b) => join([a, mapper("br")(null), b]))))  
+        : mapper("blockquote")(result.reduce((a, b) => join([a, mapper("br")(null), b])))
+      return _result
+    }
     const blockquote = P.lazy(() => {
-      blockquoteLevel = null
-      createBlockquote = false
-      return blockquoteLine.atLeast(1).map(x =>
-        x.reduce((a, b) => join([a, mapper("br")(null), b]))
-      ).map(mapper("p")).map(mapper("blockquote")).skip(whitespace.many())
+      return blockquoteLine.atLeast(1).map(x => {
+        return parseBlockquoteTree(createBlockquoteTree(x), true)
+      }).skip(whitespace.many())
     })
-
     const pluginBlock = P.seqMap(
       P.string("@["),
       P.regexp(/[a-zA-Z]+/),

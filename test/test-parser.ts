@@ -137,6 +137,14 @@ code block
     const expect = `<blockquote><p>This is the test of blockquote.<br /><blockquote>This is child.</blockquote><br />This should be treated as the same paragraph in the same quotation.</p></blockquote>`
     assert.equal(parse(input), expect)
   })
+  it("should parse nested blockquote", () => {
+    const input = `> This is the test of blockquote.
+> > This is child.
+> > > This is child's child.
+> This should be treated as the same paragraph in the same quotation.`
+    const expect = `<blockquote><p>This is the test of blockquote.<br /><blockquote>This is child.<br /><blockquote>This is child's child.</blockquote></blockquote><br />This should be treated as the same paragraph in the same quotation.</p></blockquote>`
+    assert.equal(parse(input), expect)
+  })
   it("should parse multiple blockquotes", () => {
     const input = `> para1
 
