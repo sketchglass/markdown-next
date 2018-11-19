@@ -1,4 +1,5 @@
 import P = require("parsimmon")
+import * as util  from "util"
 
 interface IndexType {
   offset: number
@@ -354,13 +355,16 @@ class Parser<T> {
       for (const o of x) {
         if (o.blockquoteLevel < depth) {
           let node = {text: o.text, children: [], parent: currentNode.parent}
+          console.log(depth - o.blockquoteLevel)
+          console.log(node)
           for (let i = 0; i < depth - o.blockquoteLevel; i++) {
             if (currentNode.parent) {
               currentNode = currentNode.parent
             }
           }
+          node.parent = currentNode
           currentNode.children.push(node)
-          currentNode = node
+          currentNode = node.parent
           depth = o.blockquoteLevel
         } else if (o.blockquoteLevel > depth) {
           let node = {text: o.text, children: [], parent: currentNode}
@@ -374,6 +378,8 @@ class Parser<T> {
           currentNode.children.push(node)
         }
       }
+      console.log(x)
+      console.log(util.inspect(root, false, 10, true))
       return root      
     }
     const parseBlockquoteTree = (tree: IBlockquoteVertex, isRoot = false) => {
