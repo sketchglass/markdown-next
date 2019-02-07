@@ -375,20 +375,22 @@ class Parser<T> {
           currentNode.children.push(node)
         }
       }
-      return root      
+      return root
     }
     const parseBlockquoteTree = (tree: IBlockquoteVertex, isRoot = false) => {
       let result: any[] = []
-      for (const v of tree.children) {
+      for (const [i, v] of tree.children.entries()) {
         if (v.text !== null) {
-          result.push(v.text)
+          if (tree.children[i + 1] && typeof tree.children[i + 1].text === "string") {
+            result.push(join([v.text, mapper("br")(null)]))
+          } else {
+            result.push(v.text)
+          }
         } else if (v.children.length !== 0) {
           result.push(parseBlockquoteTree(v))
         }
       }
-      const _result = isRoot ? 
-        mapper("blockquote")(mapper("p")(result.reduce((a, b) => join([a, mapper("br")(null), b]))))  
-        : mapper("blockquote")(result.reduce((a, b) => join([a, mapper("br")(null), b])))
+      const _result = mapper("blockquote")(result.reduce((a, b) => join([a, b])))
       return _result
     }
     const blockquote = P.lazy(() => {
