@@ -227,11 +227,10 @@ class Parser<T> {
     const ulStart = P.string("- ").or(P.string("* "))
     const olStart =  P.regexp(/[0-9]+\. /)
 
+    let liLevel: number[] = [1]
+    let counter: number = 0
 
-
-    const listLineContent = P.lazy(() => {
-      let liLevel: number[] = [1]
-      let counter: number = 0
+    const listLineContent = () => {
       return P.seqMap(
         P.seqMap(
           listIndent.many(),
@@ -248,7 +247,7 @@ class Parser<T> {
           // detect which types of content
           nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
           counter += 1
-          return {counter, nodeType, str}
+          return {counter, nodeType, str, liLevel}
         }
       ).skip(linebreak.atMost(1)).map(v => {
         const liLevelBefore = liLevel[v.counter - 1]
@@ -286,9 +285,9 @@ class Parser<T> {
         const _nodeType = v.nodeType
         return _nodeType
       })
-    })
+    }
     const lists = P.lazy(() => {
-      return listLineContent.atLeast(1).skip(linebreak.atMost(1)).map(nodeTypes => {
+      return listLineContent().atLeast(1).map(nodeTypes => {
         this.rootTree.type = nodeTypes[0]
         const result = treeToHtml(this.rootTree)
         this.rootTree = this.currentTree = {
@@ -297,6 +296,8 @@ class Parser<T> {
           type: "shadow",
           parent: null
         }
+        liLevel = [1]
+        counter = 0
         return result
       })
     })
