@@ -228,74 +228,77 @@ class Parser<T> {
     const olStart =  P.regexp(/[0-9]+\. /)
 
 
-    let liLevel: number | null = null
-    let liLevelBefore: number | null = null
 
-    let nodeType: "ul" | "ol"
-
-    const listLineContent = P.seqMap(
-      P.seqMap(
-        listIndent.many(),
-        P.index,
-        (_1, index) => {
-          const _index = index as any as IndexType
-          if(liLevelBefore === null)
-            liLevelBefore = liLevel = _index.column
-          liLevelBefore = liLevel
-          liLevel = _index.column
+    const listLineContent = P.lazy(() => {
+      let liLevel: number[] = [1]
+      let counter: number = 0
+      return P.seqMap(
+        P.seqMap(
+          listIndent.many(),
+          P.index,
+          (_1, index) => {
+            const _index = index as any as IndexType
+            liLevel.push(_index.column)
+          }
+        ),
+        ulStart.or(olStart),
+        liSingleLine,
+        (_1, start, str) => {
+          let nodeType: "ul" | "ol"
+          // detect which types of content
+          nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
+          counter += 1
+          return {counter, nodeType, str}
         }
-      ),
-      ulStart.or(olStart),
-      (_1, start) => {
-        // detect which types of content
-        nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
-      }
-    ).then(liSingleLine).skip(linebreak.atMost(1)).map(x => {
-      if(liLevel !== null && liLevelBefore !== null) {
-        if(liLevelBefore == liLevel) {
+      ).skip(linebreak.atMost(1)).map(v => {
+        const liLevelBefore = liLevel[v.counter - 1]
+        const liLevelCurrent = liLevel[v.counter]
+        if(liLevelBefore === liLevelCurrent) {
           this.currentTree.children.push({
-            value: x,
+            value: v.str,
             children: [],
-            type: nodeType,
+            type: v.nodeType,
             parent: this.currentTree
           })
-        } else if(liLevelBefore < liLevel) {
+        } else if(liLevelBefore < liLevelCurrent) {
           const currentTreeIndex = this.currentTree.children.length - 1
           this.currentTree = this.currentTree.children[currentTreeIndex]
           this.currentTree.children.push({
             children: [],
-            type: nodeType,
+            type: v.nodeType,
             parent: this.currentTree,
-            value: x
+            value: v.str
           })
-        } else if(liLevelBefore > liLevel) {
-          const unindetationStep = (liLevelBefore - liLevel - 1) / "  ".length
+        } else if(liLevelBefore > liLevelCurrent) {
+          const unindetationStep = (liLevelBefore - liLevelCurrent - 1) / "  ".length
           for (let i = 0; i < unindetationStep; i++) {
             if(this.currentTree.parent !== null) {
               this.currentTree = this.currentTree.parent
             }
           }
           this.currentTree.children.push({
-            type: nodeType,
+            type: v.nodeType,
             children: [],
             parent: this.currentTree,
-            value: x
+            value: v.str
           })
         }
-      }
-      const _nodeType = nodeType
-      return _nodeType
+        const _nodeType = v.nodeType
+        return _nodeType
+      })
     })
-    const lists = listLineContent.atLeast(1).skip(linebreak.atMost(1)).map(nodeTypes => {
-      this.rootTree.type = nodeTypes[0]
-      const result = treeToHtml(this.rootTree)
-      this.rootTree = this.currentTree = {
-        value: null,
-        children: [],
-        type: "shadow",
-        parent: null
-      }
-      return result
+    const lists = P.lazy(() => {
+      return listLineContent.atLeast(1).skip(linebreak.atMost(1)).map(nodeTypes => {
+        this.rootTree.type = nodeTypes[0]
+        const result = treeToHtml(this.rootTree)
+        this.rootTree = this.currentTree = {
+          value: null,
+          children: [],
+          type: "shadow",
+          parent: null
+        }
+        return result
+      })
     })
 
 
@@ -416,7 +419,6 @@ class Parser<T> {
     const block = P.alt(
       P.regexp(/\s+/).result(""),
       pluginBlock,
-      lists,
       h1Special,
       h2Special,
       h6,
@@ -427,6 +429,7 @@ class Parser<T> {
       h1,
       table,
       codeBlock,
+      lists,
       blockquote,
       paragraph,
       linebreak.result(""),
@@ -475,9 +478,10 @@ export const asAST: ExportType<any> = {
   }
 }
 
-const p = new Parser<any>({
-  export: asHTML,
-})
+
 export const parse = (s: string) => {
+  const p = new Parser<any>({
+    export: asHTML,
+  })
   return p.parse(s)
 }
