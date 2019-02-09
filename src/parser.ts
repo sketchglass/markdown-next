@@ -232,19 +232,14 @@ class Parser<T> {
 
     const listLineContent = () => {
       return P.seqMap(
-        P.seqMap(
-          listIndent.many(),
-          P.index,
-          (_1, index) => {
-            const _index = index as any as IndexType
-            liLevel.push(_index.column)
-          }
-        ),
+        listIndent.many(),
+        P.index,
         ulStart.or(olStart),
         liSingleLine,
-        (_1, start, str) => {
+        (_1, index, start, str) => {
           let nodeType: "ul" | "ol"
           // detect which types of content
+          liLevel.push(index.column)
           nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
           counter += 1
           return {counter, nodeType, str, liLevel}
@@ -400,7 +395,7 @@ class Parser<T> {
     const blockquote = P.lazy(() => {
       return blockquoteLine.atLeast(1).map(x => {
         return parseBlockquoteTree(createBlockquoteTree(x), true)
-      }).skip(whitespace.many())
+      })
     })
     const pluginBlock = P.seqMap(
       P.string("@["),

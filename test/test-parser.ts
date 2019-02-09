@@ -283,7 +283,7 @@ cccc
   - b
 
             `
-      const expect = '<blockquote>a</blockquote><p>cccc</p><ul><li>a<ul><li>b</li></ul></ul>'
+      const expect = '<blockquote>a</blockquote><p>cccc</p><ul><li>a<ul><li>b</li></ul></li></ul>'
       assert.equal(parse(input), expect)
     })
     it("should parse h1 after paragraph", () => {
