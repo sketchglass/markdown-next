@@ -115,8 +115,12 @@ code block
     assert.equal(parse(input), expect)
   })
   it("should parse code block", () => {
-    const input = "```test\n\ncode\n\n```"
-    const expect = `<pre><code>\ncode\n</code></pre>`
+    const input = `
+\`\`\`
+code
+code
+\`\`\``
+    const expect = `<pre><code>code\ncode</code></pre>`
     assert.equal(parse(input), expect)
   })
   it("should parse code inline", () => {
@@ -272,6 +276,20 @@ x is @[print:40]
     assert.equal(p.parse(input), "<p>x is 40</p>")
   })
   describe("courner cases", () => {
+    it("can parse mixes of blockquote and list", () => {
+      const input = `
+
+> a
+
+cccc
+
+- a
+  - b
+
+            `
+      const expect = '<blockquote>a</blockquote><p>cccc</p><ul><li>a<ul><li>b</li></ul></li></ul>'
+      assert.equal(parse(input), expect)
+    })
     it("should parse h1 after paragraph", () => {
       const input = `para
 
