@@ -115,8 +115,12 @@ code block
     assert.equal(parse(input), expect)
   })
   it("should parse code block", () => {
-    const input = "```test\n\ncode\n\n```"
-    const expect = `<pre><code>\ncode\n</code></pre>`
+    const input = `
+\`\`\`
+code
+code
+\`\`\``
+    const expect = `<pre><code>code\ncode</code></pre>`
     assert.equal(parse(input), expect)
   })
   it("should parse code inline", () => {

@@ -320,9 +320,10 @@ class Parser<T> {
         codeBlockBegin,
         codeBlockDefinitionStr,
         linebreak,
-        linebreak.or(codeBlockStr.skip(linebreak)).many(),
+        linebreak.or(codeBlockStr.lookahead(linebreak)).many(),
         codeBlockEnd,
         (_1, definition, _2, code, _3) => {
+          code.pop()
           return mapper("pre")(mapper("code")(join(code)))
         })
 
