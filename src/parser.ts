@@ -229,7 +229,16 @@ class Parser<T> {
 
     let liLevel: number[] = [1]
     let counter: number = 0
-
+    const initializeList = () => {
+      this.rootTree = this.currentTree = {
+        value: null,
+        children: [],
+        type: "shadow",
+        parent: null
+      }
+      liLevel = [1]
+      counter = 0
+    }
     const listLineContent = () => {
       return P.seqMap(
         listIndent.many(),
@@ -242,9 +251,18 @@ class Parser<T> {
           liLevel.push(index.column)
           nodeType = ((start == "* ") || (start == "- ")) ? "ul" : "ol"
           counter += 1
-          return {counter, nodeType, str, liLevel}
+          return {counter, nodeType, str, liLevel, index}
         }
-      ).skip(linebreak.atMost(1)).map(v => {
+      )
+      .skip(linebreak.atMost(1))
+      .chain(v => {
+        if (v.liLevel.filter(x => x % 2 !== 1).length > 0) {
+          initializeList();
+          return P.fail("Invalid indentation")
+        }
+        return P.succeed(v)
+      })
+      .map(v => {
         const liLevelBefore = liLevel[v.counter - 1]
         const liLevelCurrent = liLevel[v.counter]
         if(liLevelBefore === liLevelCurrent) {
@@ -285,14 +303,8 @@ class Parser<T> {
       return listLineContent().atLeast(1).map(nodeTypes => {
         this.rootTree.type = nodeTypes[0]
         const result = treeToHtml(this.rootTree)
-        this.rootTree = this.currentTree = {
-          value: null,
-          children: [],
-          type: "shadow",
-          parent: null
-        }
-        liLevel = [1]
-        counter = 0
+        // initialization
+        initializeList()
         return result
       })
     })
@@ -324,7 +336,9 @@ class Parser<T> {
         codeBlockEnd,
         (_1, definition, _2, code, _3) => {
           code.pop()
-          return mapper("pre")(mapper("code")(join(code)))
+          if (definition === "")
+            return mapper("pre")(mapper("code")(join(code)))
+          return mapper("pre", { "data-language": definition})(mapper("code")(join(code)))
         })
 
     const blockquoteStr = P.regexp(/[^\r\n]+/)

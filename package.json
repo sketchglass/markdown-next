@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "example": "cd examples && webpack",
+    "prepublish": "npm run build",
     "test": "npm run build && mocha lib/test"
   },
   "author": "minamorl",
@@ -35,5 +36,5 @@
     "url": "https://github.com/sketchglass/markdown-next/issues"
   },
   "homepage": "https://github.com/sketchglass/markdown-next#readme",
-  "version": "1.0.0"
+  "version": "1.1.1"
 }
