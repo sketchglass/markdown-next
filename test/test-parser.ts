@@ -123,6 +123,15 @@ code
     const expect = `<pre><code>code\ncode</code></pre>`
     assert.equal(parse(input), expect)
   })
+  it("should parse code block with a language type", () => {
+    const input = `
+\`\`\`ts
+code
+code
+\`\`\``
+    const expect = `<pre data-language="ts"><code>code\ncode</code></pre>`
+    assert.equal(parse(input), expect)
+  })
   it("should parse code inline", () => {
     const input = "this should be surrounded with `code`"
     const expect = `<p>this should be surrounded with <code>code</code></p>`
@@ -221,6 +230,24 @@ code
   1. g
   2. h`
     const expect = `<ul><li>a</li><li>b<ul><li>c<ul><li>d</li></ul></li><li>e</li></ul></li></ul><ul><li>f<ol><li>g</li><li>h</li></ol></li></ul>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse broken nested lists", () => {
+    const input = `- a
+- b
+   - c`
+    const expect = `<ul><li>a</li><li>b</li></ul><p>- c</p>`
+    assert.equal(parse(input), expect)
+  })
+  it("should parse a list after broken nested lists", () => {
+    const input = `- a
+- b
+   - c
+
+aaaa
+
+- a`
+    const expect = `<ul><li>a</li><li>b</li></ul><p>- c</p><p>aaaa</p><ul><li>a</li></ul>`
     assert.equal(parse(input), expect)
   })
   it("should parse another form of headers", () => {
