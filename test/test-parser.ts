@@ -431,6 +431,11 @@ code block
       const expect = `<p>paragraph<br />\`\`\`<br />code block<br />\`</p>`
       assert.equal(parse(input), expect)
     })
+    it('can parse inline code contains underscore', () => {
+        const input = "`_`";
+        const expect = `<p><code>_</code></p>`
+        assert.equal(parse(input), expect)
+    })
   })
   describe("AST", () => {
     it("can output paragraph", () => {

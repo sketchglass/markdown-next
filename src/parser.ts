@@ -78,6 +78,7 @@ class Parser<T> {
     const asterisk = P.string("*")
     const sharp = P.string("#")
     const plainStr = P.regexp(/[^`_\*\r\n]+/)
+    const codePlainStr = P.regexp(/[^`\r\n]+/)
     const linebreak = P.string("\r\n").or(P.string("\n")).or(P.string("\r"))
     const equal = P.string("=")
     const minus = P.string("-")
@@ -162,7 +163,7 @@ class Parser<T> {
     const codeStart = P.string("`")
     const codeEnd = P.string("`")
     const code = codeStart
-      .then(plainStr)
+      .then(codePlainStr)
       .map(mapper("code"))
       .skip(codeEnd)
 
@@ -222,7 +223,7 @@ class Parser<T> {
         .map(mapper("p"))
 
     const listIndent = P.string("  ")
-    const liSingleLine = plainStr
+    const liSingleLine = codePlainStr
 
     const ulStart = P.string("- ").or(P.string("* "))
     const olStart =  P.regexp(/[0-9]+\. /)
