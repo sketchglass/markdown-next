@@ -485,7 +485,7 @@ export const asHTML: ExportType<string> = {
   mapper: (tag, args) => children => [
     "<" + tag,
     args  ? " " + Object.keys(args).map(x => `${x}="${escapeHtml(String(args[x]))}"`).join(" ") : "",
-    children !== null ? ">" + children + "</" + tag + ">" : " />"
+    children !== null && children !== "" ? ">" + children + "</" + tag + ">" : " />"
   ].join(""),
   join: x => x.join(""),
   postprocess: x => x
