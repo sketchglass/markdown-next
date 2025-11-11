@@ -188,7 +188,7 @@ class Parser<T> {
         P.regexp(/[^\r\n=-\[\]\*\`\@]+/),
         P.regexp(/./),
       )
-    const tdStr = P.regexp(/[^\r\n\[\]\*|`]+(?= \|)/)
+    const tdStr = P.regexp(/[^\r\n\[\]\*|`]*(?= \|)/)
     const tableInline = tdStr
     const tableStart = P.string("| ")
     const tableEnd = P.string(" |")
@@ -223,7 +223,7 @@ class Parser<T> {
         .map(mapper("p"))
 
     const listIndent = P.string("  ")
-    const liSingleLine = codePlainStr
+    const liSingleLine = P.regexp(/[^`\r\n]*/)
 
     const ulStart = P.string("- ").or(P.string("* "))
     const olStart =  P.regexp(/[0-9]+\. /)
@@ -283,7 +283,7 @@ class Parser<T> {
             value: v.str
           })
         } else if(liLevelBefore > liLevelCurrent) {
-          const unindetationStep = (liLevelBefore - liLevelCurrent - 1) / "  ".length
+          const unindetationStep = (liLevelBefore - liLevelCurrent) / 2
           for (let i = 0; i < unindetationStep; i++) {
             if(this.currentTree.parent !== null) {
               this.currentTree = this.currentTree.parent
@@ -328,7 +328,7 @@ class Parser<T> {
     const codeBlockBegin = P.regexp(/^```/)
     const codeBlockEnd = P.regexp(/^```/)
     const codeBlockDefinitionStr = P.regexp(/[^`\r\n]*/)
-    const codeBlockStr = P.regexp(/[^`\r\n]+/)
+    const codeBlockStr = P.regexp(/[^\r\n]+/)
     const codeBlock = P.seqMap(
         codeBlockBegin,
         codeBlockDefinitionStr,
@@ -336,7 +336,9 @@ class Parser<T> {
         linebreak.or(codeBlockStr.lookahead(linebreak)).many(),
         codeBlockEnd,
         (_1, definition, _2, code, _3) => {
-          code.pop()
+          if (code.length > 0) {
+            code.pop()
+          }
           if (definition === "")
             return mapper("pre")(mapper("code")(join(code)))
           return mapper("pre", { "data-language": definition})(mapper("code")(join(code)))
@@ -468,11 +470,22 @@ class Parser<T> {
   }
 }
 
+function escapeHtml(text: string): string {
+  const map: {[key: string]: string} = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }
+  return text.replace(/[&<>"']/g, (m) => map[m])
+}
+
 export const asHTML: ExportType<string> = {
   mapper: (tag, args) => children => [
     "<" + tag,
-    args  ? " " + Object.keys(args).map(x => `${x}="${args[x]}"`).join(" ") : "",
-    children ? ">" + children + "</" + tag + ">" : " />"
+    args  ? " " + Object.keys(args).map(x => `${x}="${escapeHtml(String(args[x]))}"`).join(" ") : "",
+    children !== null ? ">" + children + "</" + tag + ">" : " />"
   ].join(""),
   join: x => x.join(""),
   postprocess: x => x

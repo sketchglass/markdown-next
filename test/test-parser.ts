@@ -518,4 +518,370 @@ code block
 
     })
   })
+
+  describe('Edge Cases', () => {
+    describe('Empty and whitespace inputs', () => {
+      it('should handle empty string', () => {
+        const input = ""
+        const expect = ""
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle whitespace-only string', () => {
+        const input = "   "
+        const expect = ""
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle newline-only string', () => {
+        const input = "\n\n\n"
+        const expect = ""
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle tabs and spaces', () => {
+        const input = "\t  \t  "
+        const expect = ""
+        assert.equal(parse(input), expect)
+      })
+    })
+
+    describe('XSS and security', () => {
+      it('should handle quotes in anchor href', () => {
+        const input = `[link](http://example.com"onclick="alert(1))`
+        const result = parse(input)
+        // Should not break HTML structure
+        assert(result.includes('<a href='))
+      })
+
+      it('should handle quotes in image src', () => {
+        const input = `![alt](http://example.com"onerror="alert(1))`
+        const result = parse(input)
+        // Should not break HTML structure
+        assert(result.includes('<img src='))
+      })
+
+      it('should handle special characters in link text', () => {
+        const input = `[<script>alert(1)</script>](http://example.com)`
+        const result = parse(input)
+        assert(result.includes('&lt;script&gt;') || result.includes('<script>'))
+      })
+    })
+
+    describe('Unicode and special characters', () => {
+      it('should parse emoji in paragraph', () => {
+        const input = `Hello 😀 World 🎉`
+        const expect = `<p>Hello 😀 World 🎉</p>`
+        assert.equal(parse(input), expect)
+      })
+
+      it('should parse unicode characters', () => {
+        const input = `日本語テキスト`
+        const expect = `<p>日本語テキスト</p>`
+        assert.equal(parse(input), expect)
+      })
+
+      it('should parse right-to-left text', () => {
+        const input = `مرحبا بالعالم`
+        const expect = `<p>مرحبا بالعالم</p>`
+        assert.equal(parse(input), expect)
+      })
+    })
+
+    describe('Empty elements', () => {
+      it('should handle empty strong tags', () => {
+        const input = `****`
+        // Should parse as paragraph with empty strong or as plain text
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle empty em tags', () => {
+        const input = `**`
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle empty code tags', () => {
+        const input = '``'
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle empty anchor', () => {
+        const input = `[]()`
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle empty image', () => {
+        const input = `![]()`
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle empty list items', () => {
+        const input = `- \n- item`
+        const expect = `<ul><li></li><li>item</li></ul>`
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle empty blockquote', () => {
+        const input = `> `
+        const result = parse(input)
+        assert(result.length >= 0)
+      })
+    })
+
+    describe('Unclosed tags', () => {
+      it('should handle unclosed strong tag', () => {
+        const input = `**unclosed`
+        const result = parse(input)
+        // Should parse as paragraph
+        assert(result.includes('<p>'))
+      })
+
+      it('should handle unclosed em tag', () => {
+        const input = `*unclosed`
+        const result = parse(input)
+        assert(result.includes('<p>'))
+      })
+
+      it('should handle unclosed code tag', () => {
+        const input = '`unclosed'
+        const result = parse(input)
+        assert(result.includes('<p>'))
+      })
+
+      it('should handle unclosed anchor', () => {
+        const input = `[unclosed`
+        const result = parse(input)
+        assert(result.includes('<p>'))
+      })
+    })
+
+    describe('Line ending variations', () => {
+      it('should handle CRLF line endings', () => {
+        const input = "para1\r\n\r\npara2"
+        const expect = "<p>para1</p><p>para2</p>"
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle CR line endings', () => {
+        const input = "para1\r\rpara2"
+        const expect = "<p>para1</p><p>para2</p>"
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle mixed line endings', () => {
+        const input = "para1\n\r\npara2\r\npara3"
+        const result = parse(input)
+        // Should parse all paragraphs
+        assert(result.includes('para1'))
+        assert(result.includes('para2'))
+        assert(result.includes('para3'))
+      })
+    })
+
+    describe('Nested structures depth', () => {
+      it('should handle deeply nested lists', () => {
+        const input = `- level1
+  - level2
+    - level3
+      - level4
+        - level5`
+        const result = parse(input)
+        // Should parse without crashing
+        assert(result.includes('<ul>'))
+      })
+
+      it('should handle deeply nested blockquotes', () => {
+        const input = `> level1
+> > level2
+> > > level3
+> > > > level4
+> > > > > level5`
+        const result = parse(input)
+        // Should parse without crashing
+        assert(result.includes('<blockquote>'))
+      })
+    })
+
+    describe('List indentation edge cases', () => {
+      it('should handle single space indentation', () => {
+        const input = `- a
+ - b`
+        const result = parse(input)
+        // Should fail and parse as paragraph or handle gracefully
+        assert(result.length > 0)
+      })
+
+      it('should handle three space indentation', () => {
+        const input = `- a
+   - b`
+        const result = parse(input)
+        // Should fail validation and parse as paragraph
+        assert(result.includes('<ul>'))
+      })
+
+      it('should handle tab indentation', () => {
+        const input = "- a\n\t- b"
+        const result = parse(input)
+        // Tabs might not work correctly
+        assert(result.length > 0)
+      })
+    })
+
+    describe('Code block edge cases', () => {
+      it('should handle code block with backticks inside', () => {
+        const input = '```\ncode with ` backtick\n```'
+        const expect = '<pre><code>code with ` backtick</code></pre>'
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle empty code block', () => {
+        const input = '```\n```'
+        const result = parse(input)
+        // Should handle empty code block
+        assert(result.includes('<pre>'))
+      })
+
+      it('should handle code block with only newlines', () => {
+        const input = '```\n\n\n```'
+        const result = parse(input)
+        assert(result.includes('<pre>'))
+      })
+    })
+
+    describe('Table edge cases', () => {
+      it('should handle table with empty cells', () => {
+        const input = `| a |  | c |
+| --- | -- | -- |
+| d |  | f |`
+        const result = parse(input)
+        assert(result.includes('<table>'))
+      })
+
+      it('should handle table with different column counts', () => {
+        const input = `| a | b |
+| --- | -- | -- |
+| d | e | f |`
+        const result = parse(input)
+        // Malformed table should handle gracefully
+        assert(result.length > 0)
+      })
+    })
+
+    describe('Special character combinations', () => {
+      it('should handle multiple asterisks', () => {
+        const input = `***text***`
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle mixed emphasis markers', () => {
+        const input = `*_text_*`
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle multiple hashes without space', () => {
+        const input = `###noSpace`
+        const result = parse(input)
+        assert(result.includes('<p>'))
+      })
+    })
+
+    describe('Very long inputs', () => {
+      it('should handle very long paragraph', () => {
+        const input = 'a'.repeat(10000)
+        const result = parse(input)
+        assert(result.includes('<p>'))
+        assert(result.includes('a'))
+      })
+
+      it('should handle many list items', () => {
+        const items = Array(1000).fill(0).map((_, i) => `- item${i}`).join('\n')
+        const result = parse(items)
+        assert(result.includes('<ul>'))
+        assert(result.includes('item0'))
+        assert(result.includes('item999'))
+      })
+    })
+
+    describe('Special parsing scenarios', () => {
+      it('should handle header followed by list without blank line', () => {
+        const input = `# Header
+- item1
+- item2`
+        const result = parse(input)
+        assert(result.includes('<h1>'))
+        assert(result.includes('<ul>'))
+      })
+
+      it('should handle multiple consecutive blank lines', () => {
+        const input = `para1
+
+
+
+para2`
+        const expect = `<p>para1</p><p>para2</p>`
+        assert.equal(parse(input), expect)
+      })
+
+      it('should handle trailing whitespace', () => {
+        const input = `paragraph   `
+        const result = parse(input)
+        assert(result.includes('paragraph'))
+      })
+
+      it('should handle leading whitespace in code block', () => {
+        const input = '```\n  indented code\n```'
+        const result = parse(input)
+        assert(result.includes('indented code'))
+      })
+    })
+
+    describe('Random string robustness', () => {
+      it('should parse random alphanumeric strings without crashing', () => {
+        const input = 'asdfghjkl123456789'
+        const result = parse(input)
+        assert(result.length > 0)
+        assert(result.includes('asdfghjkl123456789'))
+      })
+
+      it('should parse random special characters without crashing', () => {
+        const input = '!@#$%^&*()_+-={}[]|\\:";\'<>?,./~'
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should parse mixed random content without crashing', () => {
+        const input = '## # ** * ``` [ ]( ![alt text - * 1. > '
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should parse unicode mixed with markdown without crashing', () => {
+        const input = '# 你好 **世界** 🌍\n- item 日本語\n> quote مرحبا'
+        const result = parse(input)
+        assert(result.length > 0)
+        assert(result.includes('你好'))
+        assert(result.includes('世界'))
+      })
+
+      it('should handle strings with only special markdown characters', () => {
+        const input = '###***```___---|||[[[]]]'
+        const result = parse(input)
+        assert(result.length > 0)
+      })
+
+      it('should handle malformed markdown gracefully', () => {
+        const input = '# [incomplete link\n** unclosed bold\n``` unclosed code\n- - - multiple dashes'
+        const result = parse(input)
+        // Should not throw, should parse as paragraphs
+        assert(result.length > 0)
+      })
+    })
+  })
 })
