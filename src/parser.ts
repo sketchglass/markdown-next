@@ -51,21 +51,25 @@ class Parser<T> {
     this.create()
   }
   create() {
-    function flags(re) {
-      var s = '' + re;
+    // Constants
+    const LIST_INDENT = "  ";
+    const LIST_INDENT_SIZE = LIST_INDENT.length;
+
+    function flags(re: RegExp): string {
+      const s = '' + re;
       return s.slice(s.lastIndexOf('/') + 1);
     }
 
-    function ignore(re, group=0) {
+    function ignore(re: RegExp, group: number = 0) {
       const {makeSuccess, makeFailure} = P as any
 
       const anchored = RegExp('^(?:' + re.source + ')', flags(re));
       const expected = '' + re;
-      return (P as any)(function(input, i) {
-        var match = anchored.exec(input.slice(i));
+      return (P as any)(function(input: string, i: number) {
+        const match = anchored.exec(input.slice(i));
         if (match) {
-          var fullMatch = match[0];
-          var groupMatch = match[group];
+          const fullMatch = match[0];
+          const groupMatch = match[group];
           if (groupMatch != null) {
             return makeFailure(i + fullMatch.length, groupMatch);
           }
@@ -89,56 +93,52 @@ class Parser<T> {
     const token = (p: P.Parser<any>) => {
       return p.skip(P.regexp(/\s*/m))
     }
+
+    // Helper function to create header parsers (h1-h6)
+    const createHeaderParser = (level: number, tagName: string) => {
+      return token(P.seq(
+        sharp.times(level),
+        whitespace,
+      ).then(plainStr)).map(mapper(tagName))
+    }
+
+    // Alternative header syntax (setext-style headers)
     const h1Special = P.regexp(/^(.*)\n\=+/, 1)
-      .skip(P.alt(
-        P.eof,
-        P.string("\n")
-      ))
+      .skip(P.alt(P.eof, P.string("\n")))
       .map(mapper("h1"))
     const h2Special = P.regexp(/^(.*)\n\-+/, 1)
-      .skip(P.alt(
-        P.eof,
-        P.string("\n")
-      ))
+      .skip(P.alt(P.eof, P.string("\n")))
       .map(mapper("h2"))
-    const h1 = token(P.seq(
-        sharp,
-        whitespace,
-      ).then(plainStr)).map(mapper("h1"))
-    const h2 = token(P.seq(
-        sharp.times(2),
-        whitespace,
-      ).then(plainStr)).map(mapper("h2"))
-    const h3 = token(P.seq(
-        sharp.times(3),
-        whitespace,
-      ).then(plainStr)).map(mapper("h3"))
-    const h4 = token(P.seq(
-        sharp.times(4),
-        whitespace,
-      ).then(plainStr)).map(mapper("h4"))
-    const h5 = token(P.seq(
-        sharp.times(5),
-        whitespace,
-      ).then(plainStr)).map(mapper("h5"))
-    const h6 = token(P.seq(
-        sharp.times(6),
-        whitespace,
-      ).then(plainStr)).map(mapper("h6"))
 
-    const strongStart = P.string("**").or(P.string("__"))
-    const strongEnd = strongStart
-    const strong = strongStart
+    // Atx-style headers (# syntax)
+    const h1 = createHeaderParser(1, "h1")
+    const h2 = createHeaderParser(2, "h2")
+    const h3 = createHeaderParser(3, "h3")
+    const h4 = createHeaderParser(4, "h4")
+    const h5 = createHeaderParser(5, "h5")
+    const h6 = createHeaderParser(6, "h6")
+
+    // Strong (bold) text with properly matched delimiters
+    const strongDoubleStar = P.string("**")
       .then(plainStr)
+      .skip(P.string("**"))
       .map(mapper("strong"))
-      .skip(strongEnd)
-
-    const emStart = P.string("*").or(P.string("_"))
-    const emEnd = emStart
-    const em = emStart
+    const strongDoubleUnderscore = P.string("__")
       .then(plainStr)
+      .skip(P.string("__"))
+      .map(mapper("strong"))
+    const strong = strongDoubleStar.or(strongDoubleUnderscore)
+
+    // Emphasis (italic) text with properly matched delimiters
+    const emStar = P.string("*")
+      .then(plainStr)
+      .skip(P.string("*"))
       .map(mapper("em"))
-      .skip(emEnd)
+    const emUnderscore = P.string("_")
+      .then(plainStr)
+      .skip(P.string("_"))
+      .map(mapper("em"))
+    const em = emStar.or(emUnderscore)
 
     const anchor = P.seqMap(
       P.string("["),
@@ -222,7 +222,7 @@ class Parser<T> {
     const paragraph = paragraphLine
         .map(mapper("p"))
 
-    const listIndent = P.string("  ")
+    const listIndent = P.string(LIST_INDENT)
     const liSingleLine = codePlainStr
 
     const ulStart = P.string("- ").or(P.string("* "))
@@ -257,15 +257,21 @@ class Parser<T> {
       )
       .skip(linebreak.atMost(1))
       .chain(v => {
-        if (v.liLevel.filter(x => x % 2 !== 1).length > 0) {
+        // Check if all indentation levels are odd numbers (1, 3, 5, 7...)
+        // This ensures proper 2-space indentation (column 1, 3, 5...)
+        const hasInvalidIndentation = v.liLevel.some(level => level % 2 !== 1);
+        if (hasInvalidIndentation) {
           initializeList();
-          return P.fail("Invalid indentation")
+          return P.fail("Invalid list indentation: must use 2-space indents")
         }
         return P.succeed(v)
       })
       .map(v => {
         const liLevelBefore = liLevel[v.counter - 1]
         const liLevelCurrent = liLevel[v.counter]
+
+        // Handle three cases of list item indentation:
+        // 1. Same level: add sibling to current parent
         if(liLevelBefore === liLevelCurrent) {
           this.currentTree.children.push({
             value: v.str,
@@ -273,20 +279,30 @@ class Parser<T> {
             type: v.nodeType,
             parent: this.currentTree
           })
-        } else if(liLevelBefore < liLevelCurrent) {
+        }
+        // 2. Increased indentation: nest deeper (add child to last item)
+        else if(liLevelBefore < liLevelCurrent) {
           const currentTreeIndex = this.currentTree.children.length - 1
-          this.currentTree = this.currentTree.children[currentTreeIndex]
+          if (currentTreeIndex >= 0) {
+            this.currentTree = this.currentTree.children[currentTreeIndex]
+          }
           this.currentTree.children.push({
             children: [],
             type: v.nodeType,
             parent: this.currentTree,
             value: v.str
           })
-        } else if(liLevelBefore > liLevelCurrent) {
-          const unindetationStep = (liLevelBefore - liLevelCurrent - 1) / "  ".length
+        }
+        // 3. Decreased indentation: navigate back up the tree
+        else if(liLevelBefore > liLevelCurrent) {
+          const unindetationStep = (liLevelBefore - liLevelCurrent) / LIST_INDENT_SIZE
+          // Navigate up the tree, with null safety checks
           for (let i = 0; i < unindetationStep; i++) {
             if(this.currentTree.parent !== null) {
               this.currentTree = this.currentTree.parent
+            } else {
+              // Reached root but still need to go up - reset to root
+              break;
             }
           }
           this.currentTree.children.push({
@@ -300,17 +316,28 @@ class Parser<T> {
         return _nodeType
       })
     }
+    /**
+     * Parse markdown lists (ul/ol)
+     * Builds a tree structure and converts it to the output format
+     */
     const lists = P.lazy(() => {
       return listLineContent().atLeast(1).map(nodeTypes => {
         this.rootTree.type = nodeTypes[0]
         const result = treeToHtml(this.rootTree)
-        // initialization
+        // Reset list state after parsing
         initializeList()
         return result
       })
     })
 
-
+    /**
+     * Convert list tree structure to output format
+     * Handles four cases:
+     * 1. Shadow node (container): render children only
+     * 2. Leaf node (no children): simple list item
+     * 3. Node with value and children: list item containing nested list
+     * 4. Container node: wrap children in ul/ol tag
+     */
     const treeToHtml = (treeOrNode: ListTree) => {
       if(treeOrNode.type === "shadow") {
         return join(treeOrNode.children.map(treeToHtml))
@@ -336,10 +363,11 @@ class Parser<T> {
         linebreak.or(codeBlockStr.lookahead(linebreak)).many(),
         codeBlockEnd,
         (_1, definition, _2, code, _3) => {
-          code.pop()
+          // Remove the last empty line before closing ``` (immutable way)
+          const codeLines = code.slice(0, -1)
           if (definition === "")
-            return mapper("pre")(mapper("code")(join(code)))
-          return mapper("pre", { "data-language": definition})(mapper("code")(join(code)))
+            return mapper("pre")(mapper("code")(join(codeLines)))
+          return mapper("pre", { "data-language": definition})(mapper("code")(join(codeLines)))
         })
 
     const blockquoteStr = P.regexp(/[^\r\n]+/)
@@ -356,12 +384,20 @@ class Parser<T> {
         }
       )
     })
+    /**
+     * Tree node structure for blockquotes
+     * Supports nested blockquotes with multiple levels
+     */
     interface IBlockquoteVertex {
       text: string | null
       children: IBlockquoteVertex[]
       parent?: IBlockquoteVertex
     }
-    
+
+    /**
+     * Build a tree structure from parsed blockquote lines
+     * Handles nested blockquotes based on '>' prefix depth
+     */
     const createBlockquoteTree = (x: {text: string, blockquoteLevel: number}[]) => {
       let depth = 0
       let root: IBlockquoteVertex = {text: null, children: []}
@@ -419,7 +455,7 @@ class Parser<T> {
       P.regexp(/(:[^\]]*)*/),
       P.string("]\n"),
       P.seq(
-        P.string("  ").result(""),
+        P.string(LIST_INDENT).result(""),
         P.regexp(/[^\r\n]+/),
         linebreak.atMost(1).result("\n"),
       ).map(join).atLeast(1).map(join),
@@ -462,9 +498,12 @@ class Parser<T> {
     const parsed = this.acceptables.parse(s.trim())
     if(parsed.status === true && parsed.hasOwnProperty("value"))
       return this.opts.export.postprocess(parsed.value)
-    console.error(s.trim())
-    console.error(parsed)
-    throw new Error("Parsing was failed.")
+
+    // Provide detailed error information
+    const errorDetails = parsed.status === false && 'expected' in parsed
+      ? `Expected ${(parsed as any).expected.join(', ')} at index ${(parsed as any).index.offset}`
+      : 'Unknown parsing error';
+    throw new Error(`Markdown parsing failed: ${errorDetails}\nInput: ${s.trim().substring(0, 100)}${s.trim().length > 100 ? '...' : ''}`)
   }
 }
 
